@@ -63,8 +63,8 @@ let observer
 let scanTimer
 let flushTimer
 
-/** The list container last scanned; falls back to the whole document. */
-let list
+/** The list container last scanned; `null` falls back to the whole document. */
+let list = null
 
 let installed = false
 
@@ -214,7 +214,8 @@ export function installWorkspaceNoteBadges() {
     clearTimeout(scanTimer)
     scanTimer = setTimeout(refresh, DEBOUNCE_MS)
   })
-  observer.observe(document.body, { childList: true, subtree: true })
+  // `documentElement` is always present, even if this runs before `<body>`.
+  observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
 
   refresh()
 

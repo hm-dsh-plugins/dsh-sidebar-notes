@@ -46,6 +46,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:client": "node scripts/build.mjs --client-only",
+    "smoke": "node scripts/smoke.mjs",
     "prepack": "npm run build"
   },
   "peerDependencies": {

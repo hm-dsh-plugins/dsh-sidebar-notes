@@ -71,7 +71,12 @@ cd S:\local\share\repos\dsh-plugins\dsh-sidebar-notes
 npm install        # 只为 esbuild
 npm run build      # src/ → lib/，两半都重建
 npm run build:client
+npm run smoke      # 不带浏览器跑一遍客户端 apply()
 ```
+
+`npm run smoke` 把构建出来的浏览器包载进 Node，用桩上下文跑一次 `apply()` 和拆除。
+`apply()` 里任何一处抛错都会让 cordis 回滚整个插件——tab 类型消失，已经打开的便签页变成
+「这类内容还没有可用的查看方式」。这个检查就是为了在开浏览器之前拦住那一类错误。
 
 `lib/` 是构建产物，每个文件第一行都写着来源。浏览器那一半必须是
 `window.__ModuleLoader__.load({ id, factory })` 形式（见 `scripts/build.mjs`），React 走平台模块表，
@@ -100,7 +105,9 @@ dsh-sidebar-notes/
 │  ├─ notes-styles.js      # 页面样式（dsh-notes-* 前缀）
 │  ├─ NotesIcon.jsx        # 便签、加号、复制、插入、删除图标
 │  └─ locales.js           # 中英文案
-└─ scripts/build.mjs       # src/ → lib/
+└─ scripts/
+   ├─ build.mjs           # src/ → lib/
+   └─ smoke.mjs           # 无浏览器跑一遍 apply()
 ```
 
 ## 还没做

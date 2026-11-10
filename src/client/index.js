@@ -55,5 +55,14 @@ export function apply(ctx) {
 
   // The Workspace rows live in another package's markup and carry no slot, so
   // the count is marked onto their title element and drawn by our own rule.
-  ctx.effect(() => installWorkspaceNoteBadges(), 'dsh-sidebar-notes: workspace badges')
+  // A decoration must never take the page with it: if this throws, the notes
+  // page itself stays whole and only the badges are missing.
+  ctx.effect(() => {
+    try {
+      return installWorkspaceNoteBadges()
+    } catch (error) {
+      console.warn('[dsh-sidebar-notes] workspace badges are unavailable:', error)
+      return () => {}
+    }
+  }, 'dsh-sidebar-notes: workspace badges')
 }
