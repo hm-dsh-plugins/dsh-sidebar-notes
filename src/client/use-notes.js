@@ -34,6 +34,8 @@ export function useNotes(sessionId) {
   const drafts = useRef(new Map())
   /** A create is on the wire; see `add`. */
   const inFlight = useRef(false)
+  /** Notes removed here; a flush still on the wire must not report for one. */
+  const removed = useRef(new Set())
 
   useEffect(() => {
     // Re-armed on mount, not only cleared on unmount: a development build's
@@ -86,7 +88,7 @@ export function useNotes(sessionId) {
       )))
       if (more) scheduleRef.current(id)
     } catch (cause) {
-      if (!alive.current) return
+      if (!alive.current || removed.current.has(id)) return
       setNotes((list) => list.map((note) => (
         note.id === id ? { ...note, status: 'error', error: cause.message } : note
       )))
@@ -142,5 +144,33 @@ export function useNotes(sessionId) {
     }
   }, [sessionId])
 
-  return { notes, phase, error, add, edit, flushNow, reload: load }
+  /**
+   * Remove one note on the Host, then from the page.
+   *
+   * The local record leaves only after the Host confirms: a refused delete must
+   * leave the note visibly in place rather than hide a file that still exists.
+   * @param {string} id - note identity.
+   */
+  const remove = useCallback(async (id) => {
+    try {
+      await callHost('delete', { sessionId, id })
+    } catch (cause) {
+      if (alive.current) setError(cause.message)
+      return
+    }
+    if (!alive.current) return
+    // Nothing may write this note again: drop its draft and timer, and keep an
+    // in-flight flush from reporting a failure on the way out.
+    removed.current.add(id)
+    const timer = timers.current.get(id)
+    if (timer !== undefined) {
+      clearTimeout(timer)
+      timers.current.delete(id)
+    }
+    drafts.current.delete(id)
+    setNotes((list) => list.filter((note) => note.id !== id))
+    setError(undefined)
+  }, [sessionId])
+
+  return { notes, phase, error, add, edit, flushNow, remove, reload: load }
 }

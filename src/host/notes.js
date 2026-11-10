@@ -98,6 +98,27 @@ export async function createNote(root) {
 }
 
 /**
+ * Remove one note.
+ * @param {string} root - workspace root.
+ * @param {unknown} id - note identity.
+ * @returns {Promise<{ value?: { id: string }, code?: string, message?: string }>}
+ *   `{ value }` on success, or `{ code, message }` on refusal.
+ */
+export async function removeNote(root, id) {
+  if (typeof id !== 'string' || !NOTE_ID.test(id)) {
+    return { code: 'bad-request', message: 'id must be a note identity.' }
+  }
+  const path = join(notesDirectory(root), `${id}.txt`)
+  try {
+    await rm(path)
+  } catch (error) {
+    if (error?.code === 'ENOENT') return { code: 'not-found', message: 'That note no longer exists.' }
+    throw error
+  }
+  return { value: { id } }
+}
+
+/**
  * Replace one note's text.
  * @param {string} root - workspace root.
  * @param {unknown} id - note identity.

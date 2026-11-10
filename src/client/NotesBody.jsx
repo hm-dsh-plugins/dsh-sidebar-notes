@@ -8,7 +8,7 @@
  * when they are written.
  */
 import { useEffect, useRef, useState } from 'react'
-import { PlusIcon } from './NotesIcon.jsx'
+import { PlusIcon, TrashIcon } from './NotesIcon.jsx'
 import { useNotes } from './use-notes.js'
 import { useNotesStyles } from './notes-styles.js'
 
@@ -60,7 +60,7 @@ function fitAreas(root) {
  */
 export function NotesBody({ sessionId, t, useSessions }) {
   useNotesStyles()
-  const { notes, phase, error, add, edit, flushNow, reload } = useNotes(sessionId)
+  const { notes, phase, error, add, edit, flushNow, remove, reload } = useNotes(sessionId)
   // The workspace root, read from the same Session snapshot the `files` page's
   // header uses — the caption needs no Host round trip.
   const cwd = useSessions((sessions) => sessions.byId[sessionId]?.cwd)
@@ -170,6 +170,15 @@ export function NotesBody({ sessionId, t, useSessions }) {
                         {status}
                       </span>
                     )}
+                    <button
+                      type="button"
+                      className="dsh-notes-remove"
+                      aria-label={t('remove')}
+                      title={t('remove')}
+                      onClick={() => { void remove(note.id) }}
+                    >
+                      <TrashIcon size={13} />
+                    </button>
                   </div>
                   <textarea
                     className="dsh-notes-area"

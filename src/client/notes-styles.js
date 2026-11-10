@@ -152,6 +152,36 @@ const CSS = `
 .dsh-notes-status[data-state='error'] {
   color: var(--dsw-alias-label-error);
 }
+.dsh-notes-remove {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+.dsh-notes-block:hover .dsh-notes-remove,
+.dsh-notes-block:focus-within .dsh-notes-remove,
+.dsh-notes-remove:focus-visible {
+  opacity: 1;
+}
+.dsh-notes-remove:hover {
+  color: var(--dsw-alias-label-error);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+@media (hover: none) {
+  .dsh-notes-remove {
+    opacity: 1;
+  }
+}
 .dsh-notes-area {
   display: block;
   width: 100%;
