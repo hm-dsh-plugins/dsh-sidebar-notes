@@ -97,12 +97,15 @@ export function NotesBody({ sessionId, t, useSessions, useInput, inputActions })
     }
   }
 
-  // Append the note to the composer draft. With no selection the insert lands at
-  // the document end; a break keeps it from running into existing text.
+  // Append the note to the composer draft. The insertion point is collapsed at
+  // the caret, or at the end of a selection: inserting over a selection would
+  // replace text the user had picked, and nothing here is meant to delete.
   const onInsert = (note) => {
     if (inputActions === undefined) return
     const separator = draft === '' || draft.endsWith('\n') ? '' : '\n'
-    if (!inputActions.insertText(`${separator}${note.text}`, inputActions.captureInsertion())) return
+    const caret = inputActions.captureInsertion()
+    const at = { start: caret.end, end: caret.end, draftRev: caret.draftRev }
+    if (!inputActions.insertText(`${separator}${note.text}`, at)) return
     setInsertedNote(note.id)
     clearTimeout(insertedTimer.current)
     insertedTimer.current = setTimeout(() => { setInsertedNote(undefined) }, 1500)
