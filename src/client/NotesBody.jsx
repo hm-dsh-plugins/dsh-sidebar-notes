@@ -3,12 +3,13 @@
  * grouped surface — the add row stays at its top and every note sits below it,
  * newest first.
  *
- * Each note is a plain textarea, because a note is a plain-text file. The page
- * owns only the drawing and focus; `useNotes` owns the list, the drafts and
- * when they are written.
+ * Each note is a plain textarea, because a note is a plain-text file. A row also
+ * carries its own actions: copy the text, push it into the composer, or delete
+ * it. The page owns only the drawing and focus; `useNotes` owns the list, the
+ * drafts and when they are written.
  */
 import { useEffect, useRef, useState } from 'react'
-import { CheckIcon, CopyIcon, PlusIcon, TrashIcon } from './NotesIcon.jsx'
+import { CheckIcon, CopyIcon, InsertIcon, PlusIcon, TrashIcon } from './NotesIcon.jsx'
 import { useNotes } from './use-notes.js'
 import { useNotesStyles } from './notes-styles.js'
 
@@ -55,24 +56,35 @@ function fitAreas(root) {
 
 /**
  * The notes page body.
- * @param props - the tab's standard slot props; `sessionId` names the workspace.
+ * @param props - the tab's standard slot props; `sessionId` names the workspace,
+ * `useInput` reads the composer draft and `inputActions` writes into it.
  * @returns the page.
  */
-export function NotesBody({ sessionId, t, useSessions }) {
+export function NotesBody({ sessionId, t, useSessions, useInput, inputActions }) {
   useNotesStyles()
   const { notes, phase, error, add, edit, flushNow, remove, fail, reload } = useNotes(sessionId)
   // The workspace root, read from the same Session snapshot the `files` page's
   // header uses — the caption needs no Host round trip.
   const cwd = useSessions((sessions) => sessions.byId[sessionId]?.cwd)
+  // The composer's current text, so an insert can tell whether it needs a
+  // separating line break. The hook is absent only where the conversation
+  // plugin is, and there the insert button is hidden anyway.
+  const draft = useInput?.((state) => state.draft) ?? ''
   const [adding, setAdding] = useState(false)
   const rootRef = useRef(null)
   const [pendingFocus, setPendingFocus] = useState(undefined)
-  // The row whose bin awaits its second click, and the row that just copied.
+  // The row whose bin awaits its second click, the row that just copied, and the
+  // row that just went into the composer.
   const [confirming, setConfirming] = useState(undefined)
   const [copiedNote, setCopiedNote] = useState(undefined)
+  const [insertedNote, setInsertedNote] = useState(undefined)
   const copiedTimer = useRef(undefined)
+  const insertedTimer = useRef(undefined)
 
-  useEffect(() => () => { clearTimeout(copiedTimer.current) }, [])
+  useEffect(() => () => {
+    clearTimeout(copiedTimer.current)
+    clearTimeout(insertedTimer.current)
+  }, [])
 
   const onCopy = async (note) => {
     try {
@@ -83,6 +95,17 @@ export function NotesBody({ sessionId, t, useSessions }) {
     } catch (cause) {
       fail(cause instanceof Error ? cause.message : String(cause))
     }
+  }
+
+  // Append the note to the composer draft. With no selection the insert lands at
+  // the document end; a break keeps it from running into existing text.
+  const onInsert = (note) => {
+    if (inputActions === undefined) return
+    const separator = draft === '' || draft.endsWith('\n') ? '' : '\n'
+    if (!inputActions.insertText(`${separator}${note.text}`, inputActions.captureInsertion())) return
+    setInsertedNote(note.id)
+    clearTimeout(insertedTimer.current)
+    insertedTimer.current = setTimeout(() => { setInsertedNote(undefined) }, 1500)
   }
 
   // Two clicks, one button: the first arms the bin, the second deletes. The
@@ -204,6 +227,19 @@ export function NotesBody({ sessionId, t, useSessions }) {
                       </span>
                     )}
                     <div className="dsh-notes-actions">
+                      {inputActions !== undefined && (
+                        <button
+                          type="button"
+                          className="dsh-notes-insert"
+                          data-inserted={insertedNote === note.id ? 'true' : undefined}
+                          disabled={note.text.length === 0}
+                          aria-label={t(insertedNote === note.id ? 'inserted' : 'insert')}
+                          title={t(insertedNote === note.id ? 'inserted' : 'insert')}
+                          onClick={() => { onInsert(note) }}
+                        >
+                          {insertedNote === note.id ? <CheckIcon size={13} /> : <InsertIcon size={13} />}
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="dsh-notes-copy"

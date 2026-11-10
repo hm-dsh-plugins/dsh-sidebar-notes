@@ -159,6 +159,7 @@ const CSS = `
   align-items: center;
 }
 .dsh-notes-copy,
+.dsh-notes-insert,
 .dsh-notes-remove {
   display: inline-flex;
   flex: none;
@@ -180,26 +181,34 @@ const CSS = `
   transition: opacity 100ms ease;
 }
 .dsh-notes-block:hover .dsh-notes-copy,
+.dsh-notes-block:hover .dsh-notes-insert,
 .dsh-notes-block:hover .dsh-notes-remove,
 .dsh-notes-block:focus-within .dsh-notes-copy,
+.dsh-notes-block:focus-within .dsh-notes-insert,
 .dsh-notes-block:focus-within .dsh-notes-remove,
 .dsh-notes-copy:focus-visible,
+.dsh-notes-insert:focus-visible,
 .dsh-notes-remove:focus-visible {
   opacity: 1;
 }
 .dsh-notes-copy:hover:not(:disabled),
+.dsh-notes-insert:hover:not(:disabled),
 .dsh-notes-remove:hover {
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-interactive-bg-hover);
 }
-.dsh-notes-copy[data-copied='true'] {
+.dsh-notes-copy[data-copied='true'],
+.dsh-notes-insert[data-inserted='true'] {
   color: var(--dsw-alias-state-success-primary);
 }
-.dsh-notes-copy:disabled {
+.dsh-notes-copy:disabled,
+.dsh-notes-insert:disabled {
   cursor: default;
 }
 .dsh-notes-block:hover .dsh-notes-copy:disabled,
-.dsh-notes-block:focus-within .dsh-notes-copy:disabled {
+.dsh-notes-block:hover .dsh-notes-insert:disabled,
+.dsh-notes-block:focus-within .dsh-notes-copy:disabled,
+.dsh-notes-block:focus-within .dsh-notes-insert:disabled {
   opacity: 0.35;
 }
 .dsh-notes-remove:hover {
@@ -215,6 +224,7 @@ const CSS = `
 }
 @media (hover: none) {
   .dsh-notes-copy,
+  .dsh-notes-insert,
   .dsh-notes-remove {
     opacity: 1;
   }
