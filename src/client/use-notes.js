@@ -172,5 +172,14 @@ export function useNotes(sessionId) {
     setError(undefined)
   }, [sessionId])
 
-  return { notes, phase, error, add, edit, flushNow, remove, reload: load }
+  /**
+   * Surface one failure the page raised itself — a refused clipboard write has
+   * no Host route behind it.
+   * @param {string} message - what to show.
+   */
+  const fail = useCallback((message) => {
+    if (alive.current) setError(message)
+  }, [])
+
+  return { notes, phase, error, add, edit, flushNow, remove, fail, reload: load }
 }

@@ -8,7 +8,7 @@
  * when they are written.
  */
 import { useEffect, useRef, useState } from 'react'
-import { PlusIcon, TrashIcon } from './NotesIcon.jsx'
+import { CheckIcon, CopyIcon, PlusIcon, TrashIcon } from './NotesIcon.jsx'
 import { useNotes } from './use-notes.js'
 import { useNotesStyles } from './notes-styles.js'
 
@@ -60,13 +60,41 @@ function fitAreas(root) {
  */
 export function NotesBody({ sessionId, t, useSessions }) {
   useNotesStyles()
-  const { notes, phase, error, add, edit, flushNow, remove, reload } = useNotes(sessionId)
+  const { notes, phase, error, add, edit, flushNow, remove, fail, reload } = useNotes(sessionId)
   // The workspace root, read from the same Session snapshot the `files` page's
   // header uses — the caption needs no Host round trip.
   const cwd = useSessions((sessions) => sessions.byId[sessionId]?.cwd)
   const [adding, setAdding] = useState(false)
   const rootRef = useRef(null)
   const [pendingFocus, setPendingFocus] = useState(undefined)
+  // The row whose bin awaits its second click, and the row that just copied.
+  const [confirming, setConfirming] = useState(undefined)
+  const [copiedNote, setCopiedNote] = useState(undefined)
+  const copiedTimer = useRef(undefined)
+
+  useEffect(() => () => { clearTimeout(copiedTimer.current) }, [])
+
+  const onCopy = async (note) => {
+    try {
+      await navigator.clipboard.writeText(note.text)
+      setCopiedNote(note.id)
+      clearTimeout(copiedTimer.current)
+      copiedTimer.current = setTimeout(() => { setCopiedNote(undefined) }, 1500)
+    } catch (cause) {
+      fail(cause instanceof Error ? cause.message : String(cause))
+    }
+  }
+
+  // Two clicks, one button: the first arms the bin, the second deletes. The
+  // element is the same in both states, so keyboard focus is never dropped.
+  const onRemove = (id) => {
+    if (confirming !== id) {
+      setConfirming(id)
+      return
+    }
+    setConfirming(undefined)
+    void remove(id)
+  }
 
   // Every block takes its content's height. The height depends on the text that
   // just changed, so this runs whenever the list does.
@@ -160,7 +188,12 @@ export function NotesBody({ sessionId, t, useSessions }) {
             {notes.map((note) => {
               const status = statusOf(note)
               return (
-                <section className="dsh-notes-block" key={note.id} data-dsh-note={note.id}>
+                <section
+                  className="dsh-notes-block"
+                  key={note.id}
+                  data-dsh-note={note.id}
+                  onMouseLeave={() => { setConfirming((current) => (current === note.id ? undefined : current)) }}
+                >
                   <div className="dsh-notes-meta">
                     <time className="dsh-notes-stamp" dateTime={new Date(note.createdAt).toISOString()}>
                       {when(note.createdAt)}
@@ -170,15 +203,29 @@ export function NotesBody({ sessionId, t, useSessions }) {
                         {status}
                       </span>
                     )}
-                    <button
-                      type="button"
-                      className="dsh-notes-remove"
-                      aria-label={t('remove')}
-                      title={t('remove')}
-                      onClick={() => { void remove(note.id) }}
-                    >
-                      <TrashIcon size={13} />
-                    </button>
+                    <div className="dsh-notes-actions">
+                      <button
+                        type="button"
+                        className="dsh-notes-copy"
+                        data-copied={copiedNote === note.id ? 'true' : undefined}
+                        disabled={note.text.length === 0}
+                        aria-label={t(copiedNote === note.id ? 'copied' : 'copy')}
+                        title={t(copiedNote === note.id ? 'copied' : 'copy')}
+                        onClick={() => { void onCopy(note) }}
+                      >
+                        {copiedNote === note.id ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+                      </button>
+                      <button
+                        type="button"
+                        className="dsh-notes-remove"
+                        data-confirming={confirming === note.id ? 'true' : undefined}
+                        aria-label={t(confirming === note.id ? 'confirmRemove' : 'remove')}
+                        title={t(confirming === note.id ? 'confirmRemove' : 'remove')}
+                        onClick={() => { onRemove(note.id) }}
+                      >
+                        {confirming === note.id ? <span>{t('confirmRemove')}</span> : <TrashIcon size={13} />}
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     className="dsh-notes-area"
