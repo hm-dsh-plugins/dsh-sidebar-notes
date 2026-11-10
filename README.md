@@ -61,6 +61,8 @@ dsh plugin --profile web add github:hm-dsh-plugins/dsh-notes
 
 `lib/` 是提交进仓库的，所以安装时不构建。装完重启 DSH；卸载时用包名 `dsh-sidebar-notes`。
 
+也可以在插件市场的「管理索引源」里加一条自建源，让它在「发现」页出现并可一键安装——就是仓库里的 [`market/index.json`](market/index.json)，指向 GitHub raw 地址即可。它没有声明 `install-verified`、`risk-low` 这类标签：那些是平台沙盒安装与安全审计的结论，自建源不该自封。
+
 ## 开发
 
 ```powershell
