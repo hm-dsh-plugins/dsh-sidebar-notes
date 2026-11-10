@@ -1,21 +1,24 @@
 /**
- * The note counts the sidebar draws itself, and the stylesheet both of them need.
+ * The sidebar's note indicator, and the stylesheet both it and the tab chip need.
  *
- * A Session row has a leading seat, so its badge is a component
- * (`SessionNotesBadge.jsx`). A Workspace row has no seat at all, so its count
- * rides on that row's title element as a `data-` attribute and this module's own
- * `::after` rule draws it. Nothing is inserted into the other package's DOM:
- * React never rewrites an attribute it did not write, so a re-render cannot drop
- * the mark, and a changed row shape degrades to "no badge" instead of broken
- * markup.
+ * A Session row has no free cell for a number — the leading 16px belongs to the
+ * status dot, the trailing block belongs to the time — so the row says the one
+ * thing that is worth a permanent mark: **this conversation has notes**. The
+ * mark is drawn by this plugin's own rule on a `data-` attribute, never by
+ * inserting a node into another package's markup: React never rewrites an
+ * attribute it did not write, so a re-render cannot drop the mark, and a changed
+ * row shape degrades to "no mark" instead of broken markup.
  *
- * A MutationObserver is the only trigger for Workspace rows, because they are
- * destroyed and rebuilt by the sidebar's own state changes — an element that
- * does not exist yet cannot be painted. It is also what re-asks for the Session
- * counts that a first, failed request left unknown.
+ * A Workspace row has no seat at all, so its aggregate rides on that row's title
+ * element the same way — where a number still earns its space, because that row
+ * has no other door.
+ *
+ * A MutationObserver is the only trigger: the rows are destroyed and rebuilt by
+ * the sidebar's own state changes, so an element that does not exist yet cannot
+ * be painted. It is also what re-asks for counts a failed batch left unknown.
  */
 import {
-  ensureSessionCounts, ensureWorkspaceCounts, subscribe, workspaceCountOf,
+  ensureSessionCounts, ensureWorkspaceCounts, sessionCountOf, subscribe, workspaceCountOf,
 } from './note-counts.js'
 
 /** Keeps a second install from injecting a second sheet. */
@@ -25,15 +28,16 @@ const STYLE_ID = 'dsh-notes-sidebar'
 const WORKSPACE_PREFIX = 'workspace:'
 const SESSION_PREFIX = 'session:'
 
-/** The attribute a Workspace badge renders from. */
-const ATTRIBUTE = 'data-dsh-notes-workspace'
+/** The attributes the two marks render from; the value is the count. */
+const WORKSPACE_ATTRIBUTE = 'data-dsh-notes-workspace'
+const SESSION_ATTRIBUTE = 'data-dsh-notes-session'
 
 /** Quiet time after a DOM change before the rows are examined. */
 const DEBOUNCE_MS = 150
 
 const CSS = `
-[${ATTRIBUTE}]::after {
-  content: attr(${ATTRIBUTE});
+[${WORKSPACE_ATTRIBUTE}]::after {
+  content: attr(${WORKSPACE_ATTRIBUTE});
   display: inline-block;
   box-sizing: border-box;
   min-width: 16px;
@@ -49,17 +53,27 @@ const CSS = `
   border-radius: 999px;
 }
 
-.dsh-notes-row-count {
-  box-sizing: border-box;
-  padding: 0 2px;
-  color: var(--dsw-alias-label-tertiary);
+/* A color bar, not a tinted label: the shape carries "has notes" on its own, so
+   the mark survives a colorblind reader and never competes with the title's
+   selection color. The row already reserves a transparent inline border as its
+   paint inset, so recoloring that edge costs no layout and follows the radius.
+   Two attributes, not one: the row's own border-inline shorthand sets the same
+   property at equal specificity, and this sheet cannot count on being injected
+   last. */
+[${SESSION_ATTRIBUTE}][role='treeitem'] {
+  border-inline-start-color: var(--dsw-alias-state-business-primary);
+}
+
+.dsh-notes-tab-count {
+  margin-inline-start: 5px;
+  padding: 0 5px;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   line-height: 15px;
-  text-align: center;
-  background: color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent);
-  border-radius: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  background: color-mix(in srgb, var(--dsw-alias-label-primary) 9%, transparent);
+  border-radius: 999px;
 }
 `
 
@@ -105,7 +119,29 @@ function rowsOf(scope, prefix) {
 }
 
 /**
- * Paint every Workspace row whose count is known, then ask about the rest.
+ * Mark every Session row that holds notes, and ask about the ones still unknown.
+ *
+ * The mark is presence, not a number: the count a row would have to show cannot
+ * fit in the cell the row leaves for it. The exact figure lives in the tab chip
+ * and in the Workspace aggregate.
+ * @param {ParentNode} scope - where the rows are.
+ */
+function paintSessions(scope) {
+  const missing = new Set()
+  for (const [id, row] of rowsOf(scope, SESSION_PREFIX)) {
+    const count = sessionCountOf(id)
+    if (count === undefined) {
+      missing.add(id)
+      continue
+    }
+    if (count > 0) row.setAttribute(SESSION_ATTRIBUTE, String(count))
+    else row.removeAttribute(SESSION_ATTRIBUTE)
+  }
+  if (missing.size > 0) ensureSessionCounts(missing)
+}
+
+/**
+ * Paint every Workspace row whose aggregate is known, then ask about the rest.
  * @param {ParentNode} scope - where the rows are.
  */
 function paintWorkspaces(scope) {
@@ -119,28 +155,17 @@ function paintWorkspaces(scope) {
       continue
     }
     // A Workspace with no notes carries no mark; the row must not keep an old one.
-    if (count > 0) title.setAttribute(ATTRIBUTE, String(count))
-    else title.removeAttribute(ATTRIBUTE)
+    if (count > 0) title.setAttribute(WORKSPACE_ATTRIBUTE, String(count))
+    else title.removeAttribute(WORKSPACE_ATTRIBUTE)
   }
   if (missing.size > 0) ensureWorkspaceCounts(missing)
 }
 
-/**
- * Ask the store about every Session row on screen.
- *
- * A row that already knows its count costs nothing here, so this doubles as the
- * retry after a batch that failed.
- * @param {ParentNode} scope - where the rows are.
- */
-function requestSessionCounts(scope) {
-  ensureSessionCounts(rowsOf(scope, SESSION_PREFIX).keys())
-}
-
-/** Repaint the Workspace rows and ask about anything still unknown. */
+/** Repaint the rows and ask about anything still unknown. */
 function refresh() {
   const scope = list !== null && list.isConnected ? list : document
+  paintSessions(scope)
   paintWorkspaces(scope)
-  requestSessionCounts(scope)
 
   // Once a row proves where the list lives, later scans stay inside it. Without
   // an explicit tree container the scan stays document-wide rather than guessing
@@ -152,7 +177,7 @@ function refresh() {
 }
 
 /**
- * Watch the sidebar's rows and keep both badges current.
+ * Watch the sidebar's rows and keep both marks current.
  * @returns {() => void} idempotent teardown.
  */
 export function installSidebarCounts() {
@@ -169,8 +194,8 @@ export function installSidebarCounts() {
     document.head.append(style)
   }
 
-  // A settled batch repaints the Workspace rows; the Session badges are
-  // subscribers of their own and re-render from the same notification.
+  // A settled batch repaints the rows; the tab chip is a subscriber of its own
+  // and re-renders from the same notification.
   unsubscribe = subscribe(refresh)
 
   observer = new MutationObserver(() => {
@@ -192,6 +217,7 @@ export function installSidebarCounts() {
     clearTimeout(scanTimer)
     list = null
     document.getElementById(STYLE_ID)?.remove()
-    for (const title of document.querySelectorAll(`[${ATTRIBUTE}]`)) title.removeAttribute(ATTRIBUTE)
+    for (const node of document.querySelectorAll(`[${WORKSPACE_ATTRIBUTE}]`)) node.removeAttribute(WORKSPACE_ATTRIBUTE)
+    for (const node of document.querySelectorAll(`[${SESSION_ATTRIBUTE}]`)) node.removeAttribute(SESSION_ATTRIBUTE)
   }
 }

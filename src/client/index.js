@@ -2,19 +2,21 @@
  * Browser half of `dsh-sidebar-notes`.
  *
  * It contributes one page type to the right Sidebar, one entry box on the guide
- * page — the list of doors the column shows while it is empty — and the note
- * count on every Session row. Picking the entry opens the notes page in the
- * guide's place, which is how every shipped type behaves.
+ * page — the list of doors the column shows while it is empty — the note count
+ * on that type's tab chip, and a mark on every Session row whose conversation
+ * holds notes. Picking the entry opens the notes page in the guide's place,
+ * which is how every shipped type behaves.
  *
  * The notes belong to one conversation: the page edits the notes of the Session
- * its tab was opened for, and the row's count is that same Session's number.
+ * its tab was opened for, and both the chip and the row mark describe that same
+ * Session.
  *
  * The type claims no address, so it never competes with a file preview.
  */
 
 import { NOTES_ID, notesDefinition } from './definition.js'
 import { NotesBody } from './NotesBody.jsx'
-import { SessionNotesBadge } from './SessionNotesBadge.jsx'
+import { NotesTabTitle } from './NotesTabTitle.jsx'
 import { en, zh } from './locales.js'
 import { installSidebarCounts } from './sidebar-badges.js'
 
@@ -34,8 +36,8 @@ const NS = 'dshNotes'
 export const inject = ['slots', 'locale', 'sidebarRightTabs']
 
 /**
- * Client plugin body: register the notes type, its guide entry, its page body,
- * the Session row badge, and the dictionaries behind every label.
+ * Client plugin body: register the notes type, its guide entry, its page body
+ * and tab title, the sidebar marks, and the dictionaries behind every label.
  * @param ctx - the client root context.
  */
 export function apply(ctx) {
@@ -56,22 +58,21 @@ export function apply(ctx) {
     NotesBody,
   )), 'dsh-sidebar-notes: notes body')
 
-  // The Session row's leading cell, offered by the sidebar to decorations such
-  // as this one.
-  ctx.effect(() => ctx.slots.inject('sidebar.session.row.leading', () => ctx.slots.register(
+  // The chip that names this tab: the type label plus this Session's count. It
+  // is dispatched by the same key the body registers under.
+  ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab.title', () => ctx.slots.register(
     {
-      name: 'sidebar.session.row.leading',
-      id: 'dsh-notes-count',
-      order: 40,
+      name: 'sidebar.right.pane.tab.title',
+      key: NOTES_ID,
       locale: NS,
     },
-    SessionNotesBadge,
-  )), 'dsh-sidebar-notes: session row count')
+    NotesTabTitle,
+  )), 'dsh-sidebar-notes: notes tab title')
 
-  // Workspace rows live in another package's markup and carry no seat, so their
-  // aggregate count is marked onto the row and drawn by this plugin's own rule.
-  // A decoration must never take the page with it: if this throws, the notes
-  // page itself stays whole and only those badges are missing.
+  // Session and Workspace rows live in another package's markup; the row mark
+  // and the aggregate badge are attributes this plugin's own rule draws. A
+  // decoration must never take the page with it: if this throws, the notes page
+  // itself stays whole and only those marks are missing.
   ctx.effect(() => {
     try {
       return installSidebarCounts()
