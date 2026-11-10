@@ -56,7 +56,7 @@ node --import tsx/esm apps/cli/src/bin.ts plugin --profile web remove dsh-sideba
 包可以直接从仓库装，不需要先发 npm：
 
 ```powershell
-dsh plugin --profile web add github:hm-dsh-plugins/dsh-notes
+dsh plugin --profile web add github:hm-dsh-plugins/dsh-sidebar-notes
 ```
 
 `lib/` 是提交进仓库的，所以安装时不构建。装完重启 DSH；卸载时用包名 `dsh-sidebar-notes`。

@@ -24,7 +24,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hm-dsh-plugins/dsh-notes.git"
+    "url": "git+https://github.com/hm-dsh-plugins/dsh-sidebar-notes.git"
   },
   "keywords": [
     "dsh",
