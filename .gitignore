@@ -1,0 +1,14 @@
+# Dependencies are installed, never committed.
+node_modules/
+
+# Build output is committed on purpose: profiles install this package with a
+# `link:` dependency and load `lib/` directly, so a clone must be loadable
+# without running a build first.
+
+# Runtime notes written into whatever workspace a session happens to live in.
+# Nothing creates this directory inside the package, but a manual probe would.
+.dsh-notes/
+
+# Logs and OS noise.
+*.log
+Thumbs.db

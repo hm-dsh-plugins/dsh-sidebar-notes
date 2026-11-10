@@ -1,0 +1,36 @@
+/**
+ * Host half of `dsh-notes`.
+ *
+ * The notes are plain-text files in the session workspace, which the browser
+ * cannot reach on its own: the web client's file APIs are read-only. This half
+ * adds one authenticated route confined to `.dsh-notes/` under the session's
+ * workspace — list, create, save. Every path is derived here from the session,
+ * never from the request.
+ *
+ * The browser half is the page itself; see `src/client/index.js`.
+ */
+
+import { ROUTE_PATH } from './host/protocol.js'
+import { handle } from './host/route.js'
+
+export const name = 'dsh-notes'
+
+/** The route needs the shared API channel and the Session store that locates notes. */
+export const inject = ['connection', 'sessions']
+
+/**
+ * Install the notes route on the shared `/api` channel.
+ * @param {import('@deepseek-ai/cordis').Context} ctx - host context.
+ */
+export function apply(ctx) {
+  ctx.effect(
+    () =>
+      ctx.connection.fetch.register({
+        path: ROUTE_PATH,
+        methods: ['POST'],
+        requestBody: 'buffered',
+        fetch: (request) => handle(ctx, request),
+      }),
+    `${name}: notes route`,
+  )
+}

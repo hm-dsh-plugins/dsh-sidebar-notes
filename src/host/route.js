@@ -1,0 +1,46 @@
+/**
+ * The route's request dispatch: validate the envelope, resolve the session's
+ * workspace, then run the one action the body names.
+ */
+
+import { MAX_BODY_BYTES, describe, failure, readJson } from './protocol.js'
+import { createNote, listNotes, saveNote } from './notes.js'
+import { workspaceRootOf } from './workspace.js'
+
+/**
+ * Answer one notes request.
+ * @param {import('@deepseek-ai/cordis').Context} ctx - host context.
+ * @param {Request} request - incoming request.
+ * @returns {Promise<Response>} the JSON response.
+ */
+export async function handle(ctx, request) {
+  const decoded = await readJson(request, MAX_BODY_BYTES)
+  if (decoded.code !== undefined) return failure(decoded.code, decoded.message)
+
+  const body = decoded.value
+  const action = body.action
+
+  const resolved = await workspaceRootOf(ctx, body.sessionId)
+  if (resolved.code !== undefined) return failure(resolved.code, resolved.message)
+  const root = resolved.root
+
+  try {
+    switch (action) {
+      case 'list':
+        return Response.json({ notes: await listNotes(root) })
+
+      case 'create':
+        return Response.json({ note: await createNote(root) })
+
+      case 'save': {
+        const result = await saveNote(root, body.id, body.text)
+        return result.code === undefined ? Response.json({ note: result.value }) : failure(result.code, result.message)
+      }
+
+      default:
+        return failure('unknown-action', `Unknown notes action ${JSON.stringify(action)}.`)
+    }
+  } catch (error) {
+    return failure('io-error', describe(error))
+  }
+}
