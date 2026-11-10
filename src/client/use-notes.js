@@ -124,13 +124,9 @@ export function useNotes(sessionId) {
   }, [])
 
   const add = useCallback(async () => {
-    // A create already in flight owns the next blank note; a second click must
-    // not start a competing one.
+    // A create already in flight owns the next note; a second click must not
+    // start a competing one. Each click otherwise adds its own note.
     if (inFlight.current) return undefined
-    // A blank note already waiting for the next thought is what a repeat click
-    // means: reuse it instead of stacking another empty file beside it.
-    const blank = notes.find((note) => note.text.length === 0)
-    if (blank !== undefined) return blank.id
     inFlight.current = true
     try {
       const { note } = await callHost('create', { sessionId })
@@ -144,7 +140,7 @@ export function useNotes(sessionId) {
     } finally {
       inFlight.current = false
     }
-  }, [sessionId, notes])
+  }, [sessionId])
 
   return { notes, phase, error, add, edit, flushNow, reload: load }
 }

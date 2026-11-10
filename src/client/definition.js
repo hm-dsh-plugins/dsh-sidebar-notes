@@ -5,6 +5,7 @@
  * a file away from a preview. Its guide entry is the entry box that opens it
  * from the empty Sidebar.
  */
+import { NotesIcon } from './NotesIcon.jsx'
 
 /** The tab kind this package owns. */
 export const NOTES_KIND = 'notes'
@@ -31,6 +32,8 @@ export function notesDefinition(t) {
     guide: [{
       id: 'notes',
       order: 40,
+      // Without a glyph the guide draws its cube placeholder.
+      icon: NotesIcon,
       title: () => t('guide.title'),
       description: () => t('guide.description'),
     }],

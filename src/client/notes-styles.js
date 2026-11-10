@@ -2,8 +2,14 @@
  * The page's stylesheet, injected once for as many pages as are mounted.
  *
  * Class names all start with `dsh-notes-` so the rules cannot reach another
- * plugin's markup, and every colour is a `--dsw-alias-*` token, so the light and
- * dark themes are followed without a second palette.
+ * plugin's markup, and every colour and radius is a `--dsw-*` token, so the
+ * light and dark themes are followed without a second palette.
+ *
+ * The notes are one grouped surface, not a stack of separate cards: the same
+ * construction the settings and permission panels use (a 0.5px `border-l3`
+ * rule at `radius-md`, one `border-top` between rows). Separate floating cards
+ * read as loose slips on the light theme, where `bg-base` and `bg-layer-1` are
+ * the same colour and only a 12% hairline marks an edge.
  */
 import { useEffect } from 'react'
 
@@ -28,34 +34,62 @@ const CSS = `
 .dsh-notes-header {
   display: flex;
   flex: 0 0 auto;
-  gap: 4px;
+  gap: 8px;
   align-items: center;
   box-sizing: border-box;
   height: 38px;
-  padding: 0 6px 0 16px;
+  padding: 0 16px;
   border-bottom: 0.5px solid var(--dsw-alias-border-l3);
 }
 .dsh-notes-title {
-  flex: 1 1 auto;
+  flex: none;
   margin: 0;
-  overflow: hidden;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
+}
+.dsh-notes-scope {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.dsh-notes-loading {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+.dsh-notes-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.dsh-notes-card {
+  overflow: hidden;
+  background: var(--dsw-alias-bg-base);
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+}
 .dsh-notes-add {
-  display: inline-flex;
-  flex: none;
+  display: flex;
+  gap: 6px;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 14px;
   color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
   background: transparent;
   border: 0;
-  border-radius: var(--dsw-radius-md, 6px);
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
   cursor: pointer;
 }
 .dsh-notes-add:hover:not(:disabled) {
@@ -66,41 +100,44 @@ const CSS = `
   cursor: default;
   opacity: 0.5;
 }
-.dsh-notes-body {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-  padding: 8px 16px 16px;
-  overflow: auto;
-  scrollbar-gutter: stable;
-}
 .dsh-notes-banner {
   margin: 0;
-  padding: 6px 8px;
+  padding: 8px 14px;
   color: var(--dsw-alias-label-error);
   font-size: 12px;
-  border: 0.5px solid var(--dsw-alias-label-error);
-  border-radius: var(--dsw-radius-md, 6px);
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+.dsh-notes-note {
+  margin: 0;
+  padding: 12px 14px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 1.6;
 }
 .dsh-notes-block {
   display: flex;
-  flex: none;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px 10px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: var(--dsw-radius-md, 6px);
-  background: var(--dsw-alias-bg-base);
+  gap: 4px;
+  padding: 12px 14px 14px;
+}
+.dsh-notes-block + .dsh-notes-block {
+  border-top: 0.5px solid var(--dsw-alias-border-l3);
 }
 .dsh-notes-block:focus-within {
-  border-color: var(--dsw-alias-brand-primary);
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 4%, transparent);
+}
+@media (hover: hover) {
+  .dsh-notes-block:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+  .dsh-notes-block:hover:focus-within {
+    background: color-mix(in srgb, var(--dsw-alias-brand-primary) 4%, transparent);
+  }
 }
 .dsh-notes-meta {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   min-height: 16px;
   color: var(--dsw-alias-label-tertiary);
   font-size: 11px;
@@ -116,8 +153,9 @@ const CSS = `
   color: var(--dsw-alias-label-error);
 }
 .dsh-notes-area {
+  display: block;
   width: 100%;
-  min-height: 40px;
+  min-height: 22px;
   padding: 0;
   overflow: hidden;
   color: var(--dsw-alias-label-primary);
@@ -131,29 +169,6 @@ const CSS = `
 .dsh-notes-area::placeholder {
   color: var(--dsw-alias-label-tertiary);
 }
-.dsh-notes-empty {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 24px;
-  color: var(--dsw-alias-label-tertiary);
-  text-align: center;
-}
-.dsh-notes-empty-title {
-  margin: 0;
-  color: var(--dsw-alias-label-primary);
-  font-size: 14px;
-  font-weight: 600;
-}
-.dsh-notes-empty-text {
-  margin: 0;
-  max-width: 30em;
-  font-size: 12px;
-  line-height: 1.6;
-}
 .dsh-notes-failure {
   display: flex;
   flex: 1 1 auto;
@@ -165,13 +180,25 @@ const CSS = `
   color: var(--dsw-alias-label-secondary);
   text-align: center;
 }
+.dsh-notes-failure-title {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+.dsh-notes-failure-text {
+  margin: 0;
+  max-width: 30em;
+  font-size: 12px;
+  line-height: 1.6;
+}
 .dsh-notes-retry {
   padding: 4px 12px;
   color: var(--dsw-alias-label-primary);
   font: inherit;
   background: transparent;
   border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: var(--dsw-radius-md, 6px);
+  border-radius: var(--dsw-radius-md);
   cursor: pointer;
 }
 .dsh-notes-retry:hover {

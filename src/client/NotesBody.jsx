@@ -1,13 +1,14 @@
 /**
- * The notes page: a header with the one action, then the notes as blocks,
+ * The notes page: a header naming the workspace the notes belong to, then one
+ * grouped surface — the add row stays at its top and every note sits below it,
  * newest first.
  *
- * Each block is a plain textarea, because a note is a plain-text file. The
- * page owns only the drawing and focus; `useNotes` owns the list, the drafts
- * and when they are written.
+ * Each note is a plain textarea, because a note is a plain-text file. The page
+ * owns only the drawing and focus; `useNotes` owns the list, the drafts and
+ * when they are written.
  */
 import { useEffect, useRef, useState } from 'react'
-import { NotesIcon, PlusIcon } from './NotesIcon.jsx'
+import { PlusIcon } from './NotesIcon.jsx'
 import { useNotes } from './use-notes.js'
 import { useNotesStyles } from './notes-styles.js'
 
@@ -29,6 +30,16 @@ function when(milliseconds) {
 }
 
 /**
+ * The last segment of a workspace directory.
+ * @param {string} path - absolute directory.
+ * @returns {string} its final segment.
+ */
+function workspaceName(path) {
+  const segments = path.split(/[\\/]+/u).filter((segment) => segment.length > 0)
+  return segments.length === 0 ? path : segments[segments.length - 1]
+}
+
+/**
  * Give every block its content's height.
  * @param {Element} root - the page element holding the blocks.
  */
@@ -47,9 +58,12 @@ function fitAreas(root) {
  * @param props - the tab's standard slot props; `sessionId` names the workspace.
  * @returns the page.
  */
-export function NotesBody({ sessionId, t }) {
+export function NotesBody({ sessionId, t, useSessions }) {
   useNotesStyles()
   const { notes, phase, error, add, edit, flushNow, reload } = useNotes(sessionId)
+  // The workspace root, read from the same Session snapshot the `files` page's
+  // header uses — the caption needs no Host round trip.
+  const cwd = useSessions((sessions) => sessions.byId[sessionId]?.cwd)
   const [adding, setAdding] = useState(false)
   const rootRef = useRef(null)
   const [pendingFocus, setPendingFocus] = useState(undefined)
@@ -62,8 +76,7 @@ export function NotesBody({ sessionId, t }) {
     fitAreas(root)
   }, [notes])
 
-  // The block just created — or the existing blank one a repeat click reused —
-  // takes the keyboard, with the caret at the end.
+  // The block just created takes the keyboard, with the caret at the end.
   useEffect(() => {
     const root = rootRef.current
     if (root === null || pendingFocus === undefined) return
@@ -109,72 +122,70 @@ export function NotesBody({ sessionId, t }) {
     <div className="dsh-notes-page" data-dsh-notes-page ref={rootRef}>
       <div className="dsh-notes-header">
         <h2 className="dsh-notes-title">{t('page.title')}</h2>
-        <button
-          type="button"
-          className="dsh-notes-add"
-          aria-label={t('add')}
-          title={t('add')}
-          data-dsh-notes-add
-          disabled={adding || phase !== 'ready'}
-          onClick={() => { void onAdd() }}
-        >
-          <PlusIcon />
-        </button>
+        {cwd !== undefined && (
+          <span className="dsh-notes-scope" title={cwd} data-dsh-notes-scope>
+            {t('scope.hint', { name: workspaceName(cwd) })}
+          </span>
+        )}
       </div>
 
-      {phase === 'loading' && (
-        <div className="dsh-notes-empty">
-          <p className="dsh-notes-empty-text">{t('loading')}</p>
-        </div>
-      )}
+      {phase === 'loading' && <p className="dsh-notes-loading">{t('loading')}</p>}
 
       {phase === 'failed' && (
         <div className="dsh-notes-failure">
-          <p className="dsh-notes-empty-title">{t('error.title')}</p>
-          <p className="dsh-notes-empty-text">{error}</p>
+          <p className="dsh-notes-failure-title">{t('error.title')}</p>
+          <p className="dsh-notes-failure-text">{error}</p>
           <button type="button" className="dsh-notes-retry" onClick={() => { void reload() }}>{t('retry')}</button>
         </div>
       )}
 
-      {phase === 'ready' && notes.length === 0 && (
-        <div className="dsh-notes-empty">
-          <span style={{ opacity: 0.6 }}><NotesIcon size={32} /></span>
-          <p className="dsh-notes-empty-title">{t('empty.title')}</p>
-          <p className="dsh-notes-empty-text">{t('empty.hint')}</p>
-        </div>
-      )}
+      {phase === 'ready' && (
+        <div className="dsh-notes-body">
+          <div className="dsh-notes-card" data-dsh-notes-list>
+            <button
+              type="button"
+              className="dsh-notes-add"
+              data-dsh-notes-add
+              disabled={adding}
+              onClick={() => { void onAdd() }}
+            >
+              <PlusIcon size={14} />
+              <span>{t('add')}</span>
+            </button>
 
-      {phase === 'ready' && notes.length > 0 && (
-        <div className="dsh-notes-body" data-dsh-notes-list>
-          {error !== undefined && <p className="dsh-notes-banner">{error}</p>}
-          {notes.map((note) => {
-            const status = statusOf(note)
-            return (
-              <section className="dsh-notes-block" key={note.id} data-dsh-note={note.id}>
-                <div className="dsh-notes-meta">
-                  <time className="dsh-notes-stamp" dateTime={new Date(note.createdAt).toISOString()}>
-                    {when(note.createdAt)}
-                  </time>
-                  {status !== undefined && (
-                    <span className="dsh-notes-status" data-state={note.status} title={note.error}>
-                      {status}
-                    </span>
-                  )}
-                </div>
-                <textarea
-                  className="dsh-notes-area"
-                  data-note-id={note.id}
-                  value={note.text}
-                  rows={1}
-                  spellCheck={false}
-                  placeholder={t('placeholder')}
-                  aria-label={when(note.createdAt)}
-                  onChange={(event) => { edit(note.id, event.target.value) }}
-                  onBlur={() => { flushNow(note.id) }}
-                />
-              </section>
-            )
-          })}
+            {error !== undefined && <p className="dsh-notes-banner">{error}</p>}
+
+            {notes.length === 0 && <p className="dsh-notes-note">{t('empty.hint')}</p>}
+
+            {notes.map((note) => {
+              const status = statusOf(note)
+              return (
+                <section className="dsh-notes-block" key={note.id} data-dsh-note={note.id}>
+                  <div className="dsh-notes-meta">
+                    <time className="dsh-notes-stamp" dateTime={new Date(note.createdAt).toISOString()}>
+                      {when(note.createdAt)}
+                    </time>
+                    {status !== undefined && (
+                      <span className="dsh-notes-status" data-state={note.status} title={note.error}>
+                        {status}
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    className="dsh-notes-area"
+                    data-note-id={note.id}
+                    value={note.text}
+                    rows={1}
+                    spellCheck={false}
+                    placeholder={t('placeholder')}
+                    aria-label={when(note.createdAt)}
+                    onChange={(event) => { edit(note.id, event.target.value) }}
+                    onBlur={() => { flushNow(note.id) }}
+                  />
+                </section>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
