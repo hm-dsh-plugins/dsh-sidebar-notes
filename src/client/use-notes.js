@@ -32,6 +32,8 @@ export function useNotes(sessionId) {
   const alive = useRef(true)
   const timers = useRef(new Map())
   const drafts = useRef(new Map())
+  /** A create is on the wire; see `add`. */
+  const inFlight = useRef(false)
 
   useEffect(() => {
     // Re-armed on mount, not only cleared on unmount: a development build's
@@ -122,6 +124,14 @@ export function useNotes(sessionId) {
   }, [])
 
   const add = useCallback(async () => {
+    // A create already in flight owns the next blank note; a second click must
+    // not start a competing one.
+    if (inFlight.current) return undefined
+    // A blank note already waiting for the next thought is what a repeat click
+    // means: reuse it instead of stacking another empty file beside it.
+    const blank = notes.find((note) => note.text.length === 0)
+    if (blank !== undefined) return blank.id
+    inFlight.current = true
     try {
       const { note } = await callHost('create', { sessionId })
       if (!alive.current) return undefined
@@ -131,8 +141,10 @@ export function useNotes(sessionId) {
     } catch (cause) {
       if (alive.current) setError(cause.message)
       return undefined
+    } finally {
+      inFlight.current = false
     }
-  }, [sessionId])
+  }, [sessionId, notes])
 
   return { notes, phase, error, add, edit, flushNow, reload: load }
 }

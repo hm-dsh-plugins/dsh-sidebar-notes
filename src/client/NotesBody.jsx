@@ -52,23 +52,27 @@ export function NotesBody({ sessionId, t }) {
   const { notes, phase, error, add, edit, flushNow, reload } = useNotes(sessionId)
   const [adding, setAdding] = useState(false)
   const rootRef = useRef(null)
-  const pendingFocus = useRef(undefined)
+  const [pendingFocus, setPendingFocus] = useState(undefined)
 
-  // Every block takes its content's height, and the block just added takes the
-  // keyboard. One effect keeps both in one place: the height depends on the
-  // text that just changed.
+  // Every block takes its content's height. The height depends on the text that
+  // just changed, so this runs whenever the list does.
   useEffect(() => {
     const root = rootRef.current
     if (root === null) return
     fitAreas(root)
-    const id = pendingFocus.current
-    if (id === undefined) return
-    const target = root.querySelector(`textarea[data-note-id="${id}"]`)
+  }, [notes])
+
+  // The block just created — or the existing blank one a repeat click reused —
+  // takes the keyboard, with the caret at the end.
+  useEffect(() => {
+    const root = rootRef.current
+    if (root === null || pendingFocus === undefined) return
+    setPendingFocus(undefined)
+    const target = root.querySelector(`textarea[data-note-id="${pendingFocus}"]`)
     if (target === null) return
-    pendingFocus.current = undefined
     target.focus()
     target.setSelectionRange(target.value.length, target.value.length)
-  }, [notes])
+  }, [pendingFocus])
 
   // A narrower pane re-wraps every note. The text did not change, so the
   // effect above does not run; the width did, so the heights are measured again.
@@ -89,7 +93,7 @@ export function NotesBody({ sessionId, t }) {
     setAdding(true)
     try {
       const id = await add()
-      if (id !== undefined) pendingFocus.current = id
+      if (id !== undefined) setPendingFocus(id)
     } finally {
       setAdding(false)
     }
