@@ -1,11 +1,12 @@
 /**
- * The route's request dispatch: validate the envelope, resolve the session's
- * workspace, then run the one action the body names.
+ * The route's request dispatch: validate the envelope, then either count one
+ * batch of Workspaces or resolve the session's workspace and run the action the
+ * body names.
  */
 
 import { MAX_BODY_BYTES, describe, failure, readJson } from './protocol.js'
 import { createNote, listNotes, removeNote, saveNote } from './notes.js'
-import { workspaceRootOf } from './workspace.js'
+import { countsByWorkspace, workspaceRootOf } from './workspace.js'
 
 /**
  * Answer one notes request.
@@ -19,6 +20,19 @@ export async function handle(ctx, request) {
 
   const body = decoded.value
   const action = body.action
+
+  // `counts` is addressed by Workspace rather than by Session, so it answers
+  // before the session → workspace resolution below.
+  if (action === 'counts') {
+    try {
+      const counted = await countsByWorkspace(ctx, body.workspaceIds)
+      return counted.code === undefined
+        ? Response.json({ counts: counted.value })
+        : failure(counted.code, counted.message)
+    } catch (error) {
+      return failure('io-error', describe(error))
+    }
+  }
 
   const resolved = await workspaceRootOf(ctx, body.sessionId)
   if (resolved.code !== undefined) return failure(resolved.code, resolved.message)

@@ -7,7 +7,8 @@
  * A live session carries its header in memory; a session restored after a
  * restart does not, and only persistence knows it.
  */
-import { describe } from './protocol.js'
+import { MAX_COUNT_WORKSPACES, describe } from './protocol.js'
+import { countNotes } from './notes.js'
 
 /**
  * Resolve one session's workspace directory.
@@ -41,4 +42,40 @@ export async function workspaceRootOf(ctx, sessionId) {
     code: 'unknown-session',
     message: 'That session has no known workspace directory, so its notes cannot be found.',
   }
+}
+
+/**
+ * Note counts for one batch of registered Workspaces.
+ *
+ * The request names Workspaces, not paths: every id is resolved through the
+ * Host's own registry, so this answer can only ever describe directories the
+ * Host already knows about.
+ * @param {import('@deepseek-ai/cordis').Context} ctx - host context.
+ * @param {unknown} workspaceIds - the requested Workspace ids.
+ * @returns {Promise<{ value?: Record<string, number>, code?: string, message?: string }>}
+ *   `{ value }` keyed by the ids that resolved, or `{ code, message }`.
+ */
+export async function countsByWorkspace(ctx, workspaceIds) {
+  if (!Array.isArray(workspaceIds)) {
+    return { code: 'bad-request', message: 'workspaceIds must be an array.' }
+  }
+  if (workspaceIds.length > MAX_COUNT_WORKSPACES) {
+    return { code: 'bad-request', message: `workspaceIds is limited to ${MAX_COUNT_WORKSPACES} entries.` }
+  }
+
+  const registry = ctx.get('workspaceRegistry')
+  if (registry === undefined) {
+    return { code: 'io-error', message: 'The workspace registry is not available.' }
+  }
+
+  const counts = {}
+  for (const id of workspaceIds) {
+    if (typeof id !== 'string' || id.length === 0) continue
+    const workspace = registry.get(id)
+    // An id the registry does not know is simply absent from the answer; the row
+    // keeps no badge rather than showing a number nobody verified.
+    if (workspace === undefined) continue
+    counts[id] = await countNotes(workspace.path)
+  }
+  return { value: counts }
 }

@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { callHost } from './notes-api.js'
+import { invalidateWorkspaceNoteBadges } from './workspace-badges.js'
 
 /** Quiet time after the last keystroke before a note is written. */
 const SAVE_DELAY_MS = 500
@@ -135,6 +136,7 @@ export function useNotes(sessionId) {
       if (!alive.current) return undefined
       setError(undefined)
       setNotes((list) => [{ ...note, status: 'saved', error: undefined }, ...list])
+      invalidateWorkspaceNoteBadges()
       return note.id
     } catch (cause) {
       if (alive.current) setError(cause.message)
@@ -170,6 +172,7 @@ export function useNotes(sessionId) {
     drafts.current.delete(id)
     setNotes((list) => list.filter((note) => note.id !== id))
     setError(undefined)
+    invalidateWorkspaceNoteBadges()
   }, [sessionId])
 
   /**

@@ -13,6 +13,7 @@
 import { NOTES_ID, notesDefinition } from './definition.js'
 import { NotesBody } from './NotesBody.jsx'
 import { en, zh } from './locales.js'
+import { installWorkspaceNoteBadges } from './workspace-badges.js'
 
 export const name = 'dsh-sidebar-notes'
 
@@ -51,4 +52,8 @@ export function apply(ctx) {
     },
     NotesBody,
   )), 'dsh-sidebar-notes: notes body')
+
+  // The Workspace rows live in another package's markup and carry no slot, so
+  // the count is marked onto their title element and drawn by our own rule.
+  ctx.effect(() => installWorkspaceNoteBadges(), 'dsh-sidebar-notes: workspace badges')
 }

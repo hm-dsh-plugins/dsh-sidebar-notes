@@ -6,12 +6,13 @@
 
 | 一半 | 内容 |
 |---|---|
-| **Host** | 在共享 `/api` 通道上注册一条已认证的路由 `POST /api/plugins/dsh-notes`（动作放在请求体里：`list` / `create` / `save`）。目录固定为会话工作区下的 `.dsh-notes/`，路径全部由服务器从 session 推导，浏览器无法指定。 |
-| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页头显示便签所属的工作区，列表顶部是常驻的添加行，下面是便签块。 |
+| **Host** | 在共享 `/api` 通道上注册一条已认证的路由 `POST /api/plugins/dsh-notes`（动作放在请求体里：`list` / `create` / `save` / `delete` / `counts`）。便签目录固定为会话工作区下的 `.dsh-notes/`，路径由服务器从 session 推导；`counts` 是唯一按 **workspaceId** 寻址的动作，路径同样只从 Host 自己的 workspace registry 取。浏览器无法指定路径。 |
+| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页头显示便签所属的工作区，列表顶部是常驻的添加行，下面是便签块。工作区行的条数徽标写在该行标题元素的 `data-` 属性上，由插件自己的 CSS 规则绘制。 |
 
 - 便签块是 `textarea`：停止输入 500ms 自动保存，失焦立即保存。
 - 添加行常驻列表顶部；新便签创建后立刻聚焦，块出现在列表最上面。
 - 每条便签可一键复制，或点「插入」把内容追加到输入框末尾（草稿非空时另起一行）；删除要点两次——第一次按钮变成「确认删除」，再点才真删，鼠标移开该行即撤销。
+- 侧边栏的工作区行在名称后显示该工作区的笔记条数；没有笔记时不显示。
 - 读取、保存失败都有可见的提示，读取失败可重试。
 
 ### 存储格式
@@ -87,16 +88,17 @@ dsh-sidebar-notes/
 ├─ src/host/
 │  ├─ protocol.js          # 路由路径、尺寸上限、错误码 → HTTP 状态
 │  ├─ route.js             # 动作分发
-│  ├─ workspace.js         # session → 工作区目录（唯一信任边界）
-│  └─ notes.js             # 便签文件：列表 / 新建 / 保存
+│  ├─ workspace.js         # session → 工作区目录（唯一信任边界）；按 workspaceId 计数
+│  └─ notes.js             # 便签文件：列表 / 新建 / 保存 / 删除 / 计数
 ├─ src/client/
-│  ├─ index.js             # 注册类型、body、字典
+│  ├─ index.js             # 注册类型、body、字典、工作区徽标
 │  ├─ definition.js        # 类型定义（含 guide 入口）
 │  ├─ NotesBody.jsx        # 页面：头部 + 便签块
 │  ├─ use-notes.js         # 列表、草稿与保存时机
 │  ├─ notes-api.js         # 浏览器端调用 Host 路由
+│  ├─ workspace-badges.js  # 侧边栏工作区行的条数徽标
 │  ├─ notes-styles.js      # 页面样式（dsh-notes-* 前缀）
-│  ├─ NotesIcon.jsx        # 便签图标与加号
+│  ├─ NotesIcon.jsx        # 便签、加号、复制、插入、删除图标
 │  └─ locales.js           # 中英文案
 └─ scripts/build.mjs       # src/ → lib/
 ```

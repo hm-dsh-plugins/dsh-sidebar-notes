@@ -11,7 +11,7 @@ export const ROUTE = 'api/plugins/dsh-notes'
 
 /**
  * Call the notes route on the Host.
- * @param {'list' | 'create' | 'save' | 'delete'} action - which operation to run.
+ * @param {'list' | 'create' | 'save' | 'delete' | 'counts'} action - which operation to run.
  * @param {Record<string, unknown>} body - the operation's own payload.
  * @param {AbortSignal} [signal] - cancellation.
  * @returns {Promise<any>} the decoded result; a failure rejects with a `code` property.
