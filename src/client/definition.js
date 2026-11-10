@@ -11,7 +11,7 @@ import { NotesIcon } from './NotesIcon.jsx'
 export const NOTES_KIND = 'notes'
 
 /** This implementation's identity in the tab system, and the key its body registers under. */
-export const NOTES_ID = 'dsh-notes'
+export const NOTES_ID = 'dsh-sidebar-notes'
 
 /**
  * The notes type's registry definition.

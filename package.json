@@ -1,8 +1,7 @@
 {
-  "name": "dsh-notes",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Sticky notes in the DeepSeek Harness right Sidebar: a notes entry on the guide page and its own tab.",
+  "name": "dsh-sidebar-notes",
+  "version": "0.1.0",
+  "description": "Plain-text sticky notes in the DeepSeek Harness right Sidebar: a notes entry on the guide page, one file per note in the session workspace.",
   "type": "module",
   "license": "MIT",
   "main": "lib/index.js",
@@ -20,7 +19,18 @@
     "lib",
     "!lib/**/*.map",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hm-dsh-plugins/dsh-notes.git"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "notes",
+    "sidebar"
   ],
   "dsh": {
     "bundle": {
@@ -35,7 +45,8 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
-    "build:client": "node scripts/build.mjs --client-only"
+    "build:client": "node scripts/build.mjs --client-only",
+    "prepack": "npm run build"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.1.0"

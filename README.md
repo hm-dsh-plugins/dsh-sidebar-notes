@@ -1,4 +1,4 @@
-# dsh-notes
+# dsh-sidebar-notes
 
 在 DeepSeek Harness 右侧边栏里记便签：纯文本，一条一个文件，按创建时间倒序排在页面上。
 
@@ -7,10 +7,11 @@
 | 一半 | 内容 |
 |---|---|
 | **Host** | 在共享 `/api` 通道上注册一条已认证的路由 `POST /api/plugins/dsh-notes`（动作放在请求体里：`list` / `create` / `save`）。目录固定为会话工作区下的 `.dsh-notes/`，路径全部由服务器从 session 推导，浏览器无法指定。 |
-| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页面本身是一个添加按钮 + 一列便签块。 |
+| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页头显示便签所属的工作区，列表顶部是常驻的添加行，下面是便签块。 |
 
 - 便签块是 `textarea`：停止输入 500ms 自动保存，失焦立即保存。
-- 添加按钮在页面右上角；新便签创建后立刻聚焦，块出现在列表最上面。
+- 添加行常驻列表顶部；新便签创建后立刻聚焦，块出现在列表最上面。
+- 每条便签可一键复制；删除要点两次——第一次按钮变成「确认删除」，再点才真删，鼠标移开该行即撤销。
 - 读取、保存失败都有可见的提示，读取失败可重试。
 
 ### 存储格式
@@ -31,7 +32,7 @@
 profile 用的是 pnpm 的 `link:` 协议——**改完 `lib/` 刷新页面就生效**，不用重装：
 
 ```json
-"dsh-notes": "link:S:/local/share/repos/dsh-plugins/dsh-notes"
+"dsh-sidebar-notes": "link:S:/local/share/repos/dsh-plugins/dsh-notes"
 ```
 
 首次接线：
@@ -47,7 +48,7 @@ node --import tsx/esm apps/cli/src/bin.ts plugin --profile web add S:\local\shar
 卸载：
 
 ```powershell
-node --import tsx/esm apps/cli/src/bin.ts plugin --profile web remove dsh-notes
+node --import tsx/esm apps/cli/src/bin.ts plugin --profile web remove dsh-sidebar-notes
 ```
 
 ## 开发
@@ -90,6 +91,5 @@ dsh-notes/
 
 ## 还没做
 
-- 删除便签（文件可以手工删，列表会跟着少一条）
 - 搜索、排序切换、置顶
 - 富文本 / Markdown——现在刻意就是纯文本

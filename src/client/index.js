@@ -14,7 +14,7 @@ import { NOTES_ID, notesDefinition } from './definition.js'
 import { NotesBody } from './NotesBody.jsx'
 import { en, zh } from './locales.js'
 
-export const name = 'dsh-notes'
+export const name = 'dsh-sidebar-notes'
 
 /** This package's copy namespace. */
 const NS = 'dshNotes'
@@ -37,9 +37,9 @@ export const inject = ['slots', 'locale', 'sidebarRightTabs']
 export function apply(ctx) {
   const t = ctx.locale.bind(NS)
 
-  ctx.effect(() => ctx.sidebarRightTabs.register(notesDefinition(t)), 'dsh-notes: notes type')
+  ctx.effect(() => ctx.sidebarRightTabs.register(notesDefinition(t)), 'dsh-sidebar-notes: notes type')
 
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-notes: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-sidebar-notes: dictionaries')
 
   // The body is keyed by the definition's id, so the seat finds it for every
   // notes tab, docked or floating, in every pane.
@@ -50,5 +50,5 @@ export function apply(ctx) {
       locale: NS,
     },
     NotesBody,
-  )), 'dsh-notes: notes body')
+  )), 'dsh-sidebar-notes: notes body')
 }

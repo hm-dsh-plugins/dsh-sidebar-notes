@@ -4,5 +4,5 @@
 # enough for the host to load it. The browser half arrives through the same
 # package's `dsh.client` declaration and `./client` export.
 - insert:
-    - id: dsh-notes
-      name: dsh-notes
+    - id: dsh-sidebar-notes
+      name: dsh-sidebar-notes
