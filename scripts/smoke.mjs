@@ -70,12 +70,13 @@ module.apply(ctx)
 for (const dispose of disposers) if (typeof dispose === 'function') dispose()
 
 // The wiring the sidebar depends on: the page type, its body, its chip title,
-// and the row-mark sheet. A missing one is silent in the browser, which is why
-// it is asserted here.
+// the Session row's dot, and the Workspace badge sheet. A missing one is silent
+// in the browser, which is why it is asserted here.
 const expected = [
   'tab:dsh-sidebar-notes',
   'slot:sidebar.right.pane.tab:dsh-sidebar-notes',
   'slot:sidebar.right.pane.tab.title:dsh-sidebar-notes',
+  'slot:sidebar.session.row.trailing:dsh-notes-dot',
 ]
 if (registered.join() !== expected.join()) {
   throw new Error(`unexpected registrations: ${JSON.stringify(registered)}`)

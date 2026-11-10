@@ -1,36 +1,28 @@
 /**
- * The sidebar's note indicator, and the stylesheet both it and the tab chip need.
+ * The sidebar's Workspace counters, and the stylesheet every piece of this
+ * plugin's sidebar surface needs.
  *
- * A Session row has no free cell for a number — the leading 16px belongs to the
- * status dot, the trailing block belongs to the time — so the row says the one
- * thing that is worth a permanent mark: **this conversation has notes**. The
- * mark is drawn by this plugin's own rule on a `data-` attribute, never by
- * inserting a node into another package's markup: React never rewrites an
- * attribute it did not write, so a re-render cannot drop the mark, and a changed
- * row shape degrades to "no mark" instead of broken markup.
+ * A Workspace row has no seat, so its aggregate rides on that row's title
+ * element as a `data-` attribute and this module's own `::after` rule draws it.
+ * One number is worth the space there: the Workspace row is the only row with no
+ * other door, and nothing else competes for it. Session rows are marked by
+ * seats instead (`SessionNoteDot.jsx`, `NotesTabTitle.jsx`), so no Session row
+ * is written to here.
  *
- * A Workspace row has no seat at all, so its aggregate rides on that row's title
- * element the same way — where a number still earns its space, because that row
- * has no other door.
- *
- * A MutationObserver is the only trigger: the rows are destroyed and rebuilt by
- * the sidebar's own state changes, so an element that does not exist yet cannot
- * be painted. It is also what re-asks for counts a failed batch left unknown.
+ * A MutationObserver is the only trigger, because the rows are destroyed and
+ * rebuilt by the sidebar's own state changes — an element that does not exist
+ * yet cannot be painted.
  */
-import {
-  ensureSessionCounts, ensureWorkspaceCounts, sessionCountOf, subscribe, workspaceCountOf,
-} from './note-counts.js'
+import { ensureWorkspaceCounts, subscribe, workspaceCountOf } from './note-counts.js'
 
 /** Keeps a second install from injecting a second sheet. */
 const STYLE_ID = 'dsh-notes-sidebar'
 
-/** The sidebar's row-key prefixes. */
+/** The sidebar's row-key prefix for a Workspace group. */
 const WORKSPACE_PREFIX = 'workspace:'
-const SESSION_PREFIX = 'session:'
 
-/** The attributes the two marks render from; the value is the count. */
+/** The attribute the Workspace badge renders from; the value is the count. */
 const WORKSPACE_ATTRIBUTE = 'data-dsh-notes-workspace'
-const SESSION_ATTRIBUTE = 'data-dsh-notes-session'
 
 /** Quiet time after a DOM change before the rows are examined. */
 const DEBOUNCE_MS = 150
@@ -53,15 +45,14 @@ const CSS = `
   border-radius: 999px;
 }
 
-/* A color bar, not a tinted label: the shape carries "has notes" on its own, so
-   the mark survives a colorblind reader and never competes with the title's
-   selection color. The row already reserves a transparent inline border as its
-   paint inset, so recoloring that edge costs no layout and follows the radius.
-   Two attributes, not one: the row's own border-inline shorthand sets the same
-   property at equal specificity, and this sheet cannot count on being injected
-   last. */
-[${SESSION_ATTRIBUTE}][role='treeitem'] {
-  border-inline-start-color: var(--dsw-alias-state-business-primary);
+/* The Session row's note dot. A filled shape, not a tinted label: it survives a
+   row whose title is being selected and reads without relying on hue alone. */
+.dsh-notes-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-business-primary);
 }
 
 .dsh-notes-tab-count {
@@ -101,52 +92,21 @@ function titleOf(row) {
 }
 
 /**
- * The row ids currently on screen for one prefix.
- * @param {ParentNode} scope - where to look.
- * @param {string} prefix - `workspace:` or `session:`.
- * @returns {Map<string, Element>} the first row per id.
- */
-function rowsOf(scope, prefix) {
-  const found = new Map()
-  for (const row of scope.querySelectorAll(`[data-row-key^="${prefix}"]`)) {
-    const key = row.getAttribute('data-row-key')
-    const id = key === null ? '' : key.slice(prefix.length)
-    // The ungrouped Workspace bucket carries the prefix and an empty id.
-    if (id === '') continue
-    if (!found.has(id)) found.set(id, row)
-  }
-  return found
-}
-
-/**
- * Mark every Session row that holds notes, and ask about the ones still unknown.
- *
- * The mark is presence, not a number: the count a row would have to show cannot
- * fit in the cell the row leaves for it. The exact figure lives in the tab chip
- * and in the Workspace aggregate.
- * @param {ParentNode} scope - where the rows are.
- */
-function paintSessions(scope) {
-  const missing = new Set()
-  for (const [id, row] of rowsOf(scope, SESSION_PREFIX)) {
-    const count = sessionCountOf(id)
-    if (count === undefined) {
-      missing.add(id)
-      continue
-    }
-    if (count > 0) row.setAttribute(SESSION_ATTRIBUTE, String(count))
-    else row.removeAttribute(SESSION_ATTRIBUTE)
-  }
-  if (missing.size > 0) ensureSessionCounts(missing)
-}
-
-/**
  * Paint every Workspace row whose aggregate is known, then ask about the rest.
  * @param {ParentNode} scope - where the rows are.
  */
-function paintWorkspaces(scope) {
+function refresh() {
+  const scope = list !== null && list.isConnected ? list : document
   const missing = new Set()
-  for (const [id, row] of rowsOf(scope, WORKSPACE_PREFIX)) {
+  let first
+
+  for (const row of scope.querySelectorAll(`[data-row-key^="${WORKSPACE_PREFIX}"]`)) {
+    const key = row.getAttribute('data-row-key')
+    const id = key === null ? '' : key.slice(WORKSPACE_PREFIX.length)
+    // The ungrouped bucket carries the prefix and an empty id.
+    if (id === '') continue
+    if (first === undefined) first = row
+
     const title = titleOf(row)
     if (title === null) continue
     const count = workspaceCountOf(id)
@@ -158,26 +118,19 @@ function paintWorkspaces(scope) {
     if (count > 0) title.setAttribute(WORKSPACE_ATTRIBUTE, String(count))
     else title.removeAttribute(WORKSPACE_ATTRIBUTE)
   }
-  if (missing.size > 0) ensureWorkspaceCounts(missing)
-}
 
-/** Repaint the rows and ask about anything still unknown. */
-function refresh() {
-  const scope = list !== null && list.isConnected ? list : document
-  paintSessions(scope)
-  paintWorkspaces(scope)
+  if (missing.size > 0) ensureWorkspaceCounts(missing)
 
   // Once a row proves where the list lives, later scans stay inside it. Without
   // an explicit tree container the scan stays document-wide rather than guessing
   // at a parent that may hold only one group.
   if (list === null || !list.isConnected) {
-    const first = rowsOf(scope, WORKSPACE_PREFIX).values().next().value
     if (first !== undefined) list = first.closest('[role="tree"]')
   }
 }
 
 /**
- * Watch the sidebar's rows and keep both marks current.
+ * Watch the sidebar's Workspace rows and keep their aggregate current.
  * @returns {() => void} idempotent teardown.
  */
 export function installSidebarCounts() {
@@ -194,8 +147,8 @@ export function installSidebarCounts() {
     document.head.append(style)
   }
 
-  // A settled batch repaints the rows; the tab chip is a subscriber of its own
-  // and re-renders from the same notification.
+  // A settled batch repaints the rows; the row dot and the tab chip are
+  // subscribers of their own and re-render from the same notification.
   unsubscribe = subscribe(refresh)
 
   observer = new MutationObserver(() => {
@@ -218,6 +171,5 @@ export function installSidebarCounts() {
     list = null
     document.getElementById(STYLE_ID)?.remove()
     for (const node of document.querySelectorAll(`[${WORKSPACE_ATTRIBUTE}]`)) node.removeAttribute(WORKSPACE_ATTRIBUTE)
-    for (const node of document.querySelectorAll(`[${SESSION_ATTRIBUTE}]`)) node.removeAttribute(SESSION_ATTRIBUTE)
   }
 }

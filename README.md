@@ -1,13 +1,13 @@
 # dsh-sidebar-notes
 
-在 DeepSeek Harness 右侧边栏里记便签：纯文本，一条一个文件，按创建时间倒序排在页面上。便签属于**对话**——每个会话一组，侧边栏的会话行标记「这个对话有便签」，便签页的标签显示条数，工作区行显示其下所有会话的合计。
+在 DeepSeek Harness 右侧边栏里记便签：纯文本，一条一个文件，按创建时间倒序排在页面上。便签属于**对话**——每个会话一组，侧边栏在会话行时间旁点一个小圆点表示「这个对话还有便签」，便签页的标签显示条数，工作区行显示其下所有会话的合计。
 
 ## 它做了什么
 
 | 一半 | 内容 |
 |---|---|
 | **Host** | 在共享 `/api` 通道上注册一条已认证的路由 `POST /api/plugins/dsh-notes`（动作放在请求体里：`list` / `create` / `save` / `delete` / `counts`）。便签目录固定为 `.dsh-notes/<sessionId>/`，会话由 Host 从 session 推导、再落到该会话的工作区目录，路径绝不来自请求。`counts` 按 id 批量回答：`sessionIds` 逐个会话数，`workspaceIds` 把该工作区名下各会话的条数相加。 |
-| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页头显示便签所属的工作区，列表顶部是常驻的添加行，下面是便签块。侧边栏里：会话行左缘一道色条表示该对话有便签，工作区行在名字后显示合计数，便签页的标签显示成「便签 3」。 |
+| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页头显示便签所属的工作区，列表顶部是常驻的添加行，下面是便签块。侧边栏里：会话行在时间旁显示一个圆点（`sidebar.session.row.trailing`），工作区行在名字后显示合计数，便签页的标签显示成「便签 3」。 |
 
 - 便签块是 `textarea`：停止输入 500ms 自动保存，失焦立即保存。
 - 添加行常驻列表顶部；新便签创建后立刻聚焦，块出现在列表最上面。
@@ -101,13 +101,14 @@ dsh-sidebar-notes/
 │  ├─ workspace.js         # session → 工作区目录（唯一信任边界）；按 id 批量计数
 │  └─ notes.js             # 便签文件：列表 / 新建 / 保存 / 删除 / 计数
 ├─ src/client/
-│  ├─ index.js             # 注册类型、body、标签标题、字典、侧边栏标记
+│  ├─ index.js             # 注册类型、body、标签标题、字典、行圆点、侧边栏合计
 │  ├─ definition.js        # 类型定义（含 guide 入口）
 │  ├─ NotesBody.jsx        # 页面：头部 + 便签块
 │  ├─ NotesTabTitle.jsx    # 便签页标签：类型名 + 这一会话的条数
+│  ├─ SessionNoteDot.jsx   # 会话行时间旁的圆点
 │  ├─ use-notes.js         # 列表、草稿与保存时机
 │  ├─ note-counts.js       # 条数缓存：按 id 批量取、订阅、失效
-│  ├─ sidebar-badges.js    # 会话行色条 + 工作区行合计（DOM 标记）+ 标签页数字的样式
+│  ├─ sidebar-badges.js    # 工作区行合计（DOM 标记）+ 侧边栏各处样式
 │  ├─ notes-api.js         # 浏览器端调用 Host 路由
 │  ├─ notes-styles.js      # 页面样式（dsh-notes-* 前缀）
 │  ├─ NotesIcon.jsx        # 便签、加号、复制、插入、删除图标

@@ -3,12 +3,12 @@
  *
  * It contributes one page type to the right Sidebar, one entry box on the guide
  * page — the list of doors the column shows while it is empty — the note count
- * on that type's tab chip, and a mark on every Session row whose conversation
+ * on that type's tab chip, and a dot on every Session row whose conversation
  * holds notes. Picking the entry opens the notes page in the guide's place,
  * which is how every shipped type behaves.
  *
  * The notes belong to one conversation: the page edits the notes of the Session
- * its tab was opened for, and both the chip and the row mark describe that same
+ * its tab was opened for, and both the chip and the dot describe that same
  * Session.
  *
  * The type claims no address, so it never competes with a file preview.
@@ -17,6 +17,7 @@
 import { NOTES_ID, notesDefinition } from './definition.js'
 import { NotesBody } from './NotesBody.jsx'
 import { NotesTabTitle } from './NotesTabTitle.jsx'
+import { SessionNoteDot } from './SessionNoteDot.jsx'
 import { en, zh } from './locales.js'
 import { installSidebarCounts } from './sidebar-badges.js'
 
@@ -69,10 +70,24 @@ export function apply(ctx) {
     NotesTabTitle,
   )), 'dsh-sidebar-notes: notes tab title')
 
-  // Session and Workspace rows live in another package's markup; the row mark
-  // and the aggregate badge are attributes this plugin's own rule draws. A
-  // decoration must never take the page with it: if this throws, the notes page
-  // itself stays whole and only those marks are missing.
+  // The dot beside the row's time: this conversation holds notes. A seat rather
+  // than a DOM write, and the trailing block rather than the leading cell — that
+  // 16px belongs to the row's own status dot and is absent while a run is in
+  // progress.
+  ctx.effect(() => ctx.slots.inject('sidebar.session.row.trailing', () => ctx.slots.register(
+    {
+      name: 'sidebar.session.row.trailing',
+      id: 'dsh-notes-dot',
+      order: 40,
+      locale: NS,
+    },
+    SessionNoteDot,
+  )), 'dsh-sidebar-notes: session row dot')
+
+  // Workspace rows have no seat at all, so their aggregate is marked onto the
+  // row and drawn by this plugin's own rule. A decoration must never take the
+  // page with it: if this throws, the notes page itself stays whole and only
+  // that badge is missing.
   ctx.effect(() => {
     try {
       return installSidebarCounts()
