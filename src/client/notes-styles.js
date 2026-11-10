@@ -103,7 +103,7 @@ const CSS = `
 .dsh-notes-banner {
   margin: 0;
   padding: 8px 14px;
-  color: var(--dsw-alias-label-error);
+  color: var(--dsw-alias-state-error-primary);
   font-size: 12px;
   border-bottom: 0.5px solid var(--dsw-alias-border-l3);
 }
@@ -150,7 +150,7 @@ const CSS = `
   white-space: nowrap;
 }
 .dsh-notes-status[data-state='error'] {
-  color: var(--dsw-alias-label-error);
+  color: var(--dsw-alias-state-error-primary);
 }
 .dsh-notes-actions {
   display: flex;
@@ -203,15 +203,15 @@ const CSS = `
   opacity: 0.35;
 }
 .dsh-notes-remove:hover {
-  color: var(--dsw-alias-label-error);
+  color: var(--dsw-alias-state-error-primary);
 }
 .dsh-notes-remove[data-confirming='true'] {
   padding: 0 8px;
-  color: var(--dsw-alias-label-error);
-  background: color-mix(in srgb, var(--dsw-alias-label-error) 12%, transparent);
+  color: var(--dsw-static-neutral-00);
+  background: var(--dsw-alias-state-error-primary);
 }
 .dsh-notes-remove[data-confirming='true']:hover {
-  background: color-mix(in srgb, var(--dsw-alias-label-error) 18%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 85%, var(--dsw-static-neutral-00));
 }
 @media (hover: none) {
   .dsh-notes-copy,
