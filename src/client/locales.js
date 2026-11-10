@@ -26,6 +26,7 @@ export const zh = {
   'status.error': '保存失败',
   'error.title': '便签读取失败',
   'retry': '重试',
+  'row.count': '便签 {count} 条',
 }
 
 /** English dictionary. */
@@ -49,4 +50,5 @@ export const en = {
   'status.error': 'Save failed',
   'error.title': 'Could not read the notes',
   'retry': 'Retry',
+  'row.count': '{count} notes',
 }

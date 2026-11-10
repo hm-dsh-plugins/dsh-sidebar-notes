@@ -1,32 +1,36 @@
 # dsh-sidebar-notes
 
-在 DeepSeek Harness 右侧边栏里记便签：纯文本，一条一个文件，按创建时间倒序排在页面上。
+在 DeepSeek Harness 右侧边栏里记便签：纯文本，一条一个文件，按创建时间倒序排在页面上。便签属于**对话**——每个会话一组，侧边栏的会话行显示自己的条数，工作区行显示其下所有会话的合计。
 
 ## 它做了什么
 
 | 一半 | 内容 |
 |---|---|
-| **Host** | 在共享 `/api` 通道上注册一条已认证的路由 `POST /api/plugins/dsh-notes`（动作放在请求体里：`list` / `create` / `save` / `delete` / `counts`）。便签目录固定为会话工作区下的 `.dsh-notes/`，路径由服务器从 session 推导；`counts` 是唯一按 **workspaceId** 寻址的动作，路径同样只从 Host 自己的 workspace registry 取。浏览器无法指定路径。 |
-| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页头显示便签所属的工作区，列表顶部是常驻的添加行，下面是便签块。工作区行的条数徽标写在该行标题元素的 `data-` 属性上，由插件自己的 CSS 规则绘制。 |
+| **Host** | 在共享 `/api` 通道上注册一条已认证的路由 `POST /api/plugins/dsh-notes`（动作放在请求体里：`list` / `create` / `save` / `delete` / `counts`）。便签目录固定为 `.dsh-notes/<sessionId>/`，会话由 Host 从 session 推导、再落到该会话的工作区目录，路径绝不来自请求。`counts` 按 id 批量回答：`sessionIds` 逐个会话数，`workspaceIds` 把该工作区名下各会话的条数相加。 |
+| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页头显示便签所属的工作区，列表顶部是常驻的添加行，下面是便签块。会话行行首（`sidebar.session.row.leading`）显示该会话的条数；工作区行的合计写在该行标题元素的 `data-` 属性上，由插件自己的 CSS 规则绘制。 |
 
 - 便签块是 `textarea`：停止输入 500ms 自动保存，失焦立即保存。
 - 添加行常驻列表顶部；新便签创建后立刻聚焦，块出现在列表最上面。
 - 每条便签可一键复制，或点「插入」把内容追加到输入框末尾（草稿非空时另起一行）；删除要点两次——第一次按钮变成「确认删除」，再点才真删，鼠标移开该行即撤销。
-- 侧边栏的工作区行在名称后显示该工作区的笔记条数；没有笔记时不显示。
+- 会话行的数字只在 0 条时不显示；会话运行中、已归档、空白新会话行不渲染行首格，数字随之让位给状态点。
 - 读取、保存失败都有可见的提示，读取失败可重试。
 
 ### 存储格式
 
 ```
 <session workspace>/.dsh-notes/
-├─ 1762750000000-3f2a9c1b.txt
-└─ 1762750123456-aa77bb02.txt
+├─ session-3f2a9c1b-.../            # 一个会话一组
+│  ├─ 1762750000000-3f2a9c1b.txt
+│  └─ 1762750123456-aa77bb02.txt
+└─ session-aa77bb02-.../
+   └─ 1762759999999-1c9f0e42.txt
 ```
 
+- 会话是目录层，不是文件里的一个字段：删掉一个会话的便签就是删一个目录，也没有文件会飘到别的会话里。
 - 文件名是 **创建时间（epoch 毫秒）+ 8 位随机十六进制**；内容就是这个文件本身，纯 UTF-8 文本。
 - 倒序按文件名里的时间排，不按 mtime——编辑一条旧便签不会把它顶到最上面。
 - 保存走同目录临时文件 + rename，失败不会留下半个便签。
-- 单条上限 64 KiB；`.dsh-notes/` 里不匹配命名的文件会被忽略。
+- 单条上限 64 KiB；`.dsh-notes/` 里不匹配命名的文件、以及直接放在 `.dsh-notes/` 根下的旧文件都会被忽略。
 
 ## 安装（本机）
 
@@ -71,10 +75,11 @@ cd S:\local\share\repos\dsh-plugins\dsh-sidebar-notes
 npm install        # 只为 esbuild
 npm run build      # src/ → lib/，两半都重建
 npm run build:client
-npm run smoke      # 不带浏览器跑一遍客户端 apply()
+npm run smoke      # 客户端 apply() + Host 存储与计数，都不带浏览器
 ```
 
-`npm run smoke` 把构建出来的浏览器包载进 Node，用桩上下文跑一次 `apply()` 和拆除。
+`npm run smoke` 跑两件事：把构建出来的浏览器包载进 Node、用桩上下文跑一次 `apply()` 和拆除；
+再用一个真实临时目录跑 Host 的便签读写、按会话隔离和按工作区求和。
 `apply()` 里任何一处抛错都会让 cordis 回滚整个插件——tab 类型消失，已经打开的便签页变成
 「这类内容还没有可用的查看方式」。这个检查就是为了在开浏览器之前拦住那一类错误。
 
@@ -93,21 +98,24 @@ dsh-sidebar-notes/
 ├─ src/host/
 │  ├─ protocol.js          # 路由路径、尺寸上限、错误码 → HTTP 状态
 │  ├─ route.js             # 动作分发
-│  ├─ workspace.js         # session → 工作区目录（唯一信任边界）；按 workspaceId 计数
+│  ├─ workspace.js         # session → 工作区目录（唯一信任边界）；按 id 批量计数
 │  └─ notes.js             # 便签文件：列表 / 新建 / 保存 / 删除 / 计数
 ├─ src/client/
-│  ├─ index.js             # 注册类型、body、字典、工作区徽标
+│  ├─ index.js             # 注册类型、body、会话行徽标、字典、工作区徽标
 │  ├─ definition.js        # 类型定义（含 guide 入口）
 │  ├─ NotesBody.jsx        # 页面：头部 + 便签块
 │  ├─ use-notes.js         # 列表、草稿与保存时机
+│  ├─ note-counts.js       # 条数缓存：按 id 批量取、订阅、失效
+│  ├─ SessionNotesBadge.jsx # 会话行行首的条数
+│  ├─ sidebar-badges.js    # 工作区行合计（DOM 标记）+ 两处徽标的样式
 │  ├─ notes-api.js         # 浏览器端调用 Host 路由
-│  ├─ workspace-badges.js  # 侧边栏工作区行的条数徽标
 │  ├─ notes-styles.js      # 页面样式（dsh-notes-* 前缀）
 │  ├─ NotesIcon.jsx        # 便签、加号、复制、插入、删除图标
 │  └─ locales.js           # 中英文案
 └─ scripts/
    ├─ build.mjs           # src/ → lib/
-   └─ smoke.mjs           # 无浏览器跑一遍 apply()
+   ├─ smoke.mjs           # 无浏览器跑一遍 apply()
+   └─ host-smoke.mjs      # 真实临时目录跑一遍 Host 存储与计数
 ```
 
 ## 还没做

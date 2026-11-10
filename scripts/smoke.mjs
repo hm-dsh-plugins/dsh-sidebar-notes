@@ -20,6 +20,7 @@ const react = {
   useCallback: (fn) => fn,
   useMemo: (fn) => fn(),
   useId: () => 'id',
+  useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),
   Fragment: Symbol('Fragment'),
 }
 const jsx = react.createElement
@@ -59,12 +60,25 @@ const ctx = {
   },
   slots: {
     inject: (_name, callback) => { callback(); return () => {} },
-    register: ({ name, key }) => { registered.push(`slot:${name}:${key}`); return () => {} },
+    // A tab body registers under `key`; a list seat entry under `id`.
+    register: ({ name, key, id }) => { registered.push(`slot:${name}:${key ?? id}`); return () => {} },
   },
 }
 
 module.apply(ctx)
 
 for (const dispose of disposers) if (typeof dispose === 'function') dispose()
+
+// The wiring the sidebar depends on: the page type, its body, the Session row
+// seat, and the Workspace badge sheet. A missing one is silent in the browser,
+// which is why it is asserted here.
+const expected = [
+  'tab:dsh-sidebar-notes',
+  'slot:sidebar.right.pane.tab:dsh-sidebar-notes',
+  'slot:sidebar.session.row.leading:dsh-notes-count',
+]
+if (registered.join() !== expected.join()) {
+  throw new Error(`unexpected registrations: ${JSON.stringify(registered)}`)
+}
 
 console.log(`apply OK — ${definition.id}, ${registered.length} registrations, teardown OK`)

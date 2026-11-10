@@ -1,0 +1,65 @@
+/**
+ * Runs the Host half against a real temporary directory and a stub context.
+ *
+ * The browser smoke covers `apply()`; this covers the part that owns the disk:
+ * where a note is written, that two conversations stay apart, and that a
+ * Workspace's number is its Sessions' numbers added up.
+ */
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import {
+  countNotes, createNote, listNotes, notesDirectory, removeNote, saveNote,
+} from '../src/host/notes.js'
+import { countsBySession, countsByWorkspace } from '../src/host/workspace.js'
+
+/**
+ * Assert one value.
+ * @param {unknown} actual - what happened.
+ * @param {unknown} expected - what should have happened.
+ * @param {string} what - the claim being checked.
+ */
+function is(actual, expected, what) {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(`${what}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`)
+  }
+}
+
+const root = await mkdtemp(join(tmpdir(), 'dsh-notes-'))
+
+// Two conversations in one workspace.
+const first = await createNote(root, 'session-a')
+const second = await createNote(root, 'session-b')
+is(notesDirectory(root, 'session-a'), join(root, '.dsh-notes', 'session-a'), 'a note lives under its own conversation')
+is((await listNotes(root, 'session-a')).map((note) => note.id), [first.id], 'a conversation lists only its own notes')
+is((await listNotes(root, 'session-b')).map((note) => note.id), [second.id], 'and not the other one\'s')
+
+const saved = await saveNote(root, 'session-a', first.id, 'hello')
+is(saved.value?.text, 'hello', 'a note saves')
+is(await countNotes(root, 'session-a'), 1, 'and counts once')
+is(await countNotes(root, 'session-c'), 0, 'a conversation that never wrote a note counts zero')
+
+// A file from the pre-conversation layout is not anyone's note.
+await mkdir(notesDirectory(root, 'session-a'), { recursive: true })
+await writeFile(join(root, '.dsh-notes', '1794330102905-cfa8c90a.txt'), 'stray')
+is(await countNotes(root, 'session-a'), 1, 'a stray file in the shared directory is ignored')
+
+const registry = {
+  get: (id) => (id === 'ws-1'
+    ? { id: 'ws-1', path: root, sessionIds: ['session-a', 'session-b'] }
+    : undefined),
+}
+const live = new Map([['session-a', root], ['session-b', root]])
+const ctx = {
+  sessions: { get: (id) => (live.has(id) ? { header: { cwd: live.get(id) } } : undefined) },
+  get: (name) => (name === 'workspaceRegistry' ? registry : undefined),
+}
+
+is(await countsBySession(ctx, ['session-a', 'session-b', 'session-z']), { value: { 'session-a': 1, 'session-b': 1 } }, 'counts answer per conversation and skip unknown ids')
+is(await countsByWorkspace(ctx, ['ws-1', 'ws-z']), { value: { 'ws-1': 2 } }, 'a workspace adds up its conversations')
+
+await removeNote(root, 'session-b', second.id)
+is(await countsByWorkspace(ctx, ['ws-1']), { value: { 'ws-1': 1 } }, 'and the sum follows a deletion')
+
+await rm(root, { recursive: true, force: true })
+console.log('host OK — notes are per conversation, workspaces add them up')

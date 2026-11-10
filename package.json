@@ -1,7 +1,7 @@
 {
   "name": "dsh-sidebar-notes",
   "version": "0.1.0",
-  "description": "Plain-text sticky notes in the DeepSeek Harness right Sidebar: a notes entry on the guide page, one file per note in the session workspace.",
+  "description": "Plain-text sticky notes in the DeepSeek Harness right Sidebar: a notes page per conversation, one file per note in the session workspace.",
   "type": "module",
   "license": "MIT",
   "main": "lib/index.js",
@@ -46,7 +46,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:client": "node scripts/build.mjs --client-only",
-    "smoke": "node scripts/smoke.mjs",
+    "smoke": "node scripts/smoke.mjs && node scripts/host-smoke.mjs",
     "prepack": "npm run build"
   },
   "peerDependencies": {

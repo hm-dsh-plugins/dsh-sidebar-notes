@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { callHost } from './notes-api.js'
-import { invalidateWorkspaceNoteBadges } from './workspace-badges.js'
+import { noteCountChanged, setSessionCount } from './note-counts.js'
 
 /** Quiet time after the last keystroke before a note is written. */
 const SAVE_DELAY_MS = 500
@@ -57,6 +57,8 @@ export function useNotes(sessionId) {
       if (!alive.current) return
       setNotes(result.notes.map((note) => ({ ...note, status: 'saved', error: undefined })))
       setPhase('ready')
+      // The list just read is the authoritative count for this Session's row.
+      setSessionCount(sessionId, result.notes.length)
     } catch (cause) {
       if (!alive.current) return
       setError(cause.message)
@@ -136,7 +138,7 @@ export function useNotes(sessionId) {
       if (!alive.current) return undefined
       setError(undefined)
       setNotes((list) => [{ ...note, status: 'saved', error: undefined }, ...list])
-      invalidateWorkspaceNoteBadges()
+      noteCountChanged(sessionId, 1)
       return note.id
     } catch (cause) {
       if (alive.current) setError(cause.message)
@@ -172,7 +174,7 @@ export function useNotes(sessionId) {
     drafts.current.delete(id)
     setNotes((list) => list.filter((note) => note.id !== id))
     setError(undefined)
-    invalidateWorkspaceNoteBadges()
+    noteCountChanged(sessionId, -1)
   }, [sessionId])
 
   /**
