@@ -55,6 +55,18 @@ const CSS = `
   background: var(--dsw-alias-state-business-primary);
 }
 
+/* The note line in the row's hover card. That card is a dark surface in both
+   themes with fixed colors, so this copies the card's own status row metrics
+   instead of borrowing a theme label color the card does not use. */
+.dsh-notes-hover {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 20px;
+  color: #ADB2B8;
+}
+
 .dsh-notes-tab-count {
   margin-inline-start: 5px;
   padding: 0 5px;
