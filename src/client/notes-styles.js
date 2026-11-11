@@ -41,13 +41,6 @@ const CSS = `
   padding: 0 16px;
   border-bottom: 0.5px solid var(--dsw-alias-border-l3);
 }
-.dsh-notes-title {
-  flex: none;
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-}
 .dsh-notes-scope {
   flex: 1 1 auto;
   min-width: 0;

@@ -174,14 +174,16 @@ export function NotesBody({ sessionId, t, useSessions, useInput, inputActions })
 
   return (
     <div className="dsh-notes-page" data-dsh-notes-page ref={rootRef}>
-      <div className="dsh-notes-header">
-        <h2 className="dsh-notes-title">{t('page.title')}</h2>
-        {cwd !== undefined && (
+      {/* No page title: the tab chip beside the page already names it, and the
+          files page beside it draws its path without one. Only the workspace
+          line is this page's own — and only once the Session's root is known. */}
+      {cwd !== undefined && (
+        <div className="dsh-notes-header">
           <span className="dsh-notes-scope" title={cwd} data-dsh-notes-scope>
             {t('scope.hint', { name: workspaceName(cwd) })}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {phase === 'loading' && <p className="dsh-notes-loading">{t('loading')}</p>}
 
