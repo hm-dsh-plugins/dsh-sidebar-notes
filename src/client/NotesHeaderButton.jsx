@@ -23,7 +23,7 @@ export function NotesHeaderButton({ openNotes, t }) {
   return (
     <button
       type="button"
-      className="dsh-notes-header"
+      className="dsh-notes-header-button"
       data-dsh-notes-header=""
       aria-label={t('header.open')}
       title={t('header.open')}

@@ -88,7 +88,7 @@ const CSS = `
 
 /* The header entry: the same 28px round icon target the header's other buttons
    use, so it reads as one of them rather than as an addition to them. */
-.dsh-notes-header {
+.dsh-notes-header-button {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -103,17 +103,17 @@ const CSS = `
   cursor: pointer;
 }
 
-.dsh-notes-header svg {
+.dsh-notes-header-button svg {
   flex: none;
 }
 
-.dsh-notes-header:focus-visible {
+.dsh-notes-header-button:focus-visible {
   color: var(--dsw-alias-label-secondary);
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
 @media (hover: hover) {
-  .dsh-notes-header:hover {
+  .dsh-notes-header-button:hover {
     color: var(--dsw-alias-label-secondary);
     background: var(--dsw-alias-interactive-bg-hover);
   }

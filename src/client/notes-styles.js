@@ -31,7 +31,7 @@ const CSS = `
   font-size: var(--dsh-content-font-size-secondary, 13px);
   line-height: 1.5;
 }
-.dsh-notes-header {
+.dsh-notes-page-header {
   display: flex;
   flex: 0 0 auto;
   gap: 8px;

@@ -1,6 +1,6 @@
 {
   "name": "dsh-sidebar-notes",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Plain-text sticky notes in the DeepSeek Harness right Sidebar: a notes page per conversation, one file per note in the session workspace.",
   "type": "module",
   "license": "MIT",

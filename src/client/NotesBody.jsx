@@ -178,7 +178,7 @@ export function NotesBody({ sessionId, t, useSessions, useInput, inputActions })
           files page beside it draws its path without one. Only the workspace
           line is this page's own — and only once the Session's root is known. */}
       {cwd !== undefined && (
-        <div className="dsh-notes-header">
+        <div className="dsh-notes-page-header">
           <span className="dsh-notes-scope" title={cwd} data-dsh-notes-scope>
             {t('scope.hint', { name: workspaceName(cwd) })}
           </span>
