@@ -76,7 +76,7 @@ const expected = [
   'tab:dsh-sidebar-notes',
   'slot:sidebar.right.pane.tab:dsh-sidebar-notes',
   'slot:sidebar.right.pane.tab.title:dsh-sidebar-notes',
-  'slot:sidebar.session.row.trailing:dsh-notes-dot',
+  'slot:sidebar.session.row.leading:dsh-notes-dot',
 ]
 if (registered.join() !== expected.join()) {
   throw new Error(`unexpected registrations: ${JSON.stringify(registered)}`)

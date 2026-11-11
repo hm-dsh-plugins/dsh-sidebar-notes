@@ -70,13 +70,13 @@ export function apply(ctx) {
     NotesTabTitle,
   )), 'dsh-sidebar-notes: notes tab title')
 
-  // The dot beside the row's time: this conversation holds notes. A seat rather
-  // than a DOM write, and the trailing block rather than the leading cell — that
-  // 16px belongs to the row's own status dot and is absent while a run is in
-  // progress.
-  ctx.effect(() => ctx.slots.inject('sidebar.session.row.trailing', () => ctx.slots.register(
+  // The dot in the row's leading cell: this conversation holds notes. A seat
+  // rather than a DOM write. The row offers that cell while its own state is
+  // idle, so a run in progress keeps its status dot there and the note mark
+  // steps aside.
+  ctx.effect(() => ctx.slots.inject('sidebar.session.row.leading', () => ctx.slots.register(
     {
-      name: 'sidebar.session.row.trailing',
+      name: 'sidebar.session.row.leading',
       id: 'dsh-notes-dot',
       order: 40,
       locale: NS,

@@ -1,15 +1,17 @@
 /**
- * The note dot on a Session row: a small filled mark saying this conversation
- * still holds something — "还有事没做" is a state, and a dot is how this sidebar
- * states things.
+ * The note dot on a Session row: a small filled mark in the row's leading cell,
+ * before the title, saying this conversation still holds something — "还有事没做"
+ * is a state, and a dot is how this sidebar states things.
  *
- * It sits in the row's trailing block, beside the time, because that is a real
- * seat with room for it. The leading 16px cell would be the more prominent spot,
- * but that cell belongs to the row's own status dot and is not rendered at all
- * while a run is in progress or while the row is archived; a shipped plugin also
- * keeps its scheduled-task clock there. The dot shows the count to assistive
- * technology and through nothing else: the row's trailing block is hidden while
- * the pointer is on the row, so a tooltip there could never be read.
+ * The row hands that 16px cell to decorations only while its own primary state
+ * is idle: a run in progress, an approval request or an unread reminder keeps the
+ * row's status dot there instead, and an archived or blank row draws no cell at
+ * all. A dot in that cell therefore reads as the row's state, and yields to a
+ * more urgent one — which is the point of putting it there rather than beside the
+ * time.
+ *
+ * The count reaches assistive technology only; a sighted reader gets "has notes"
+ * from the dot and the exact figure from the notes tab's chip.
  */
 import { useEffect, useSyncExternalStore } from 'react'
 import { ensureSessionCounts, sessionCountOf, subscribe } from './note-counts.js'
