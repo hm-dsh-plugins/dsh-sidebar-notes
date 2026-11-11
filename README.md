@@ -38,14 +38,14 @@
 profile 用的是 pnpm 的 `link:` 协议——**改完 `lib/` 刷新页面就生效**，不用重装：
 
 ```json
-"dsh-sidebar-notes": "link:S:/local/share/repos/dsh-plugins/dsh-sidebar-notes"
+"dsh-sidebar-notes": "link:S:/local/repos/dsh-plugins/dsh-sidebar-notes"
 ```
 
 首次接线：
 
 ```powershell
 cd S:\local\app\deepseek-harness\content
-node --import tsx/esm apps/cli/src/bin.ts plugin --profile web add S:\local\share\repos\dsh-plugins\dsh-sidebar-notes
+node --import tsx/esm apps/cli/src/bin.ts plugin --profile web add S:\local\repos\dsh-plugins\dsh-sidebar-notes
 ```
 
 `dsh plugin` 是 pnpm 的透传，装完会把包加进 profile 的 `dsh.profile.bundles`（这一步是 DSH 的 bundle reconcile 做的，
@@ -72,7 +72,7 @@ dsh plugin --profile web add github:hm-dsh-plugins/dsh-sidebar-notes
 ## 开发
 
 ```powershell
-cd S:\local\share\repos\dsh-plugins\dsh-sidebar-notes
+cd S:\local\repos\dsh-plugins\dsh-sidebar-notes
 npm install        # 只为 esbuild
 npm run build      # src/ → lib/，两半都重建
 npm run build:client
