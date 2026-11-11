@@ -58,6 +58,8 @@ const ctx = {
   sidebarRightTabs: {
     register: ({ id }) => { registered.push(`tab:${id}`); return () => {} },
   },
+  // The header entry navigates through this face; only its shape matters here.
+  sidebarRight: { openTab: () => {} },
   slots: {
     inject: (_name, callback) => { callback(); return () => {} },
     // A tab body registers under `key`; a list seat entry under `id`.
@@ -70,13 +72,14 @@ module.apply(ctx)
 for (const dispose of disposers) if (typeof dispose === 'function') dispose()
 
 // The wiring the sidebar depends on: the page type, its body, its chip title,
-// the Session row's dot, the count line in that row's hover card, and the
-// Workspace badge sheet. A missing one is silent in the browser, which is why it
-// is asserted here.
+// the Session header entry, the Session row's dot, the count line in that row's
+// hover card, and the Workspace badge sheet. A missing one is silent in the
+// browser, which is why it is asserted here.
 const expected = [
   'tab:dsh-sidebar-notes',
   'slot:sidebar.right.pane.tab:dsh-sidebar-notes',
   'slot:sidebar.right.pane.tab.title:dsh-sidebar-notes',
+  'slot:conversation.session.header.utilities:dsh-notes-header',
   'slot:sidebar.session.row.leading:dsh-notes-dot',
   'slot:sidebar.session.row.hover:dsh-notes-hover',
 ]

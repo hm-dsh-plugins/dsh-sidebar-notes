@@ -85,6 +85,39 @@ const CSS = `
   background: color-mix(in srgb, var(--dsw-alias-label-primary) 9%, transparent);
   border-radius: 999px;
 }
+
+/* The header entry: the same 28px round icon target the header's other buttons
+   use, so it reads as one of them rather than as an addition to them. */
+.dsh-notes-header {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 28px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.dsh-notes-header svg {
+  flex: none;
+}
+
+.dsh-notes-header:focus-visible {
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+@media (hover: hover) {
+  .dsh-notes-header:hover {
+    color: var(--dsw-alias-label-secondary);
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+}
 `
 
 let observer

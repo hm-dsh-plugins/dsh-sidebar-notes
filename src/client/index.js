@@ -15,8 +15,9 @@
  * The type claims no address, so it never competes with a file preview.
  */
 
-import { NOTES_ID, notesDefinition } from './definition.js'
+import { NOTES_ID, NOTES_KIND, notesDefinition } from './definition.js'
 import { NotesBody } from './NotesBody.jsx'
+import { NotesHeaderButton } from './NotesHeaderButton.jsx'
 import { NotesTabTitle } from './NotesTabTitle.jsx'
 import { SessionNoteDot } from './SessionNoteDot.jsx'
 import { SessionNotesHover } from './SessionNotesHover.jsx'
@@ -36,7 +37,7 @@ const NS = 'dshNotes'
  * load order irrelevant — the fiber waits until the right Sidebar provides its
  * registry and navigation face.
  */
-export const inject = ['slots', 'locale', 'sidebarRightTabs']
+export const inject = ['slots', 'locale', 'sidebarRightTabs', 'sidebarRight']
 
 /**
  * Client plugin body: register the notes type, its guide entry, its page body
@@ -71,6 +72,20 @@ export function apply(ctx) {
     },
     NotesTabTitle,
   )), 'dsh-sidebar-notes: notes tab title')
+
+  // The header entry: one click puts this Session's notes page on screen. It is
+  // a call to the Sidebar's own navigation, so the page opens, reveals and
+  // deduplicates exactly as a guide entry does.
+  ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register(
+    {
+      name: 'conversation.session.header.utilities',
+      id: 'dsh-notes-header',
+      order: 10,
+      locale: NS,
+      inject: () => ({ openNotes: () => { ctx.sidebarRight.openTab(NOTES_KIND) } }),
+    },
+    NotesHeaderButton,
+  )), 'dsh-sidebar-notes: session header entry')
 
   // The dot in the row's leading cell: this conversation holds notes. A seat
   // rather than a DOM write. The row offers that cell while its own state is

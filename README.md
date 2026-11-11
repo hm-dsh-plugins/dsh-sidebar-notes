@@ -7,9 +7,10 @@
 | 一半 | 内容 |
 |---|---|
 | **Host** | 在共享 `/api` 通道上注册一条已认证的路由 `POST /api/plugins/dsh-notes`（动作放在请求体里：`list` / `create` / `save` / `delete` / `counts`）。便签目录固定为 `.dsh-notes/<sessionId>/`，会话由 Host 从 session 推导、再落到该会话的工作区目录，路径绝不来自请求。`counts` 按 id 批量回答：`sessionIds` 逐个会话数，`workspaceIds` 把该工作区名下各会话的条数相加。 |
-| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页头显示便签所属的工作区，列表顶部是常驻的添加行，下面是便签块。侧边栏里：会话行在行首显示一个圆点（`sidebar.session.row.leading`，仅在会话空闲时渲染，运行中让位给状态点），该行的悬停卡片里多一行「便签 3 条」（`sidebar.session.row.hover`），工作区行在名字后显示合计数，便签页的标签显示成「便签 3」。 |
+| **Client** | 向 `sidebarRightTabs` 注册一个 `notes` **页面类型**（不声明地址，永远不会抢走文件预览），并向 guide 页贡献一张「便签」入口卡片。页头显示便签所属的工作区，列表顶部是常驻的添加行，下面是便签块。会话页头的右侧工具区有一个便签按钮（`conversation.session.header.utilities`），点一下就把这个会话的便签页打开在侧边栏里。侧边栏里：会话行在行首显示一个圆点（`sidebar.session.row.leading`，仅在会话空闲时渲染，运行中让位给状态点），该行的悬停卡片里多一行「便签 3 条」（`sidebar.session.row.hover`），工作区行在名字后显示合计数，便签页的标签显示成「便签 3」。 |
 
 - 便签块是 `textarea`：停止输入 500ms 自动保存，失焦立即保存。
+- 会话页头的便签按钮只做导航：调 `sidebarRight.openTab('notes')`，页面在侧边栏里展开并去重，和从 guide 入口打开是同一条路。侧边栏收着也一步到位。
 - 添加行常驻列表顶部；新便签创建后立刻聚焦，块出现在列表最上面。
 - 每条便签可一键复制，或点「插入」把内容追加到输入框末尾（草稿非空时另起一行）；删除要点两次——第一次按钮变成「确认删除」，再点才真删，鼠标移开该行即撤销。
 - 会话行只标「有 / 无」，条数在悬停卡片里：那一行留给装饰的位置塞不下数字，而且 3 条和 30 条对你的下一步没有区别——点是什么意思，停在行上就说得清。卡片里那行在时间和状态之间，状态行不动：「空闲」是会话的状态，「有便签」是它的内容，换掉就会把「运行中 / 等待批准」藏起来。行首那格只在会话空闲时归装饰，运行中显示的是状态点。
@@ -101,9 +102,10 @@ dsh-sidebar-notes/
 │  ├─ workspace.js         # session → 工作区目录（唯一信任边界）；按 id 批量计数
 │  └─ notes.js             # 便签文件：列表 / 新建 / 保存 / 删除 / 计数
 ├─ src/client/
-│  ├─ index.js             # 注册类型、body、标签标题、字典、行圆点、悬停卡片条数、侧边栏合计
+│  ├─ index.js             # 注册类型、body、标签标题、字典、页头入口、行圆点、悬停卡片条数、侧边栏合计
 │  ├─ definition.js        # 类型定义（含 guide 入口）
 │  ├─ NotesBody.jsx        # 页面：头部 + 便签块
+│  ├─ NotesHeaderButton.jsx # 会话页头的便签入口
 │  ├─ NotesTabTitle.jsx    # 便签页标签：类型名 + 这一会话的条数
 │  ├─ SessionNoteDot.jsx   # 会话行行首的圆点
 │  ├─ SessionNotesHover.jsx # 会话行悬停卡片里的条数行
