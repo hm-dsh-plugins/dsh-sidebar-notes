@@ -3,6 +3,7 @@
   "version": "0.2.2",
   "description": "Plain-text sticky notes in the DeepSeek Harness right Sidebar: a notes page per conversation, one file per note in the session workspace.",
   "type": "module",
+  "author": "Hiro Muraki",
   "license": "GPL-3.0-or-later",
   "main": "lib/index.js",
   "exports": {
