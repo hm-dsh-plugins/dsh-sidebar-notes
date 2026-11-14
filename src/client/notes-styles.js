@@ -78,8 +78,14 @@ const CSS = `
   border-bottom: 0.5px solid var(--dsw-alias-border-l3);
 }
 .dsh-notes-composer-input {
+  /* border-box is load-bearing: the height above comes from the measured
+     scrollHeight, which counts the padding. With content-box the first write
+     added that 8px of padding on top of the measured height — one visible
+     jump, and then it stayed there. */
+  box-sizing: border-box;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 26px;
   max-height: 120px;
   margin: 0;
   padding: 4px 0;
