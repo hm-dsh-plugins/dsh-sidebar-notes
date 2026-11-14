@@ -19,7 +19,7 @@ const SAVE_DELAY_MS = 500
  * @param {string} sessionId - the Session whose workspace holds them.
  * @returns {{
  *   notes: Array<object>, phase: string, error: string | undefined,
- *   add: () => Promise<string | undefined>, edit: (id: string, text: string) => void,
+ *   add: (text: string) => Promise<object | undefined>, edit: (id: string, text: string) => void,
  *   flushNow: (id: string) => void, reload: () => Promise<void>,
  * }} the page state and its actions.
  */
@@ -128,18 +128,27 @@ export function useNotes(sessionId) {
     void flushRef.current(id)
   }, [])
 
-  const add = useCallback(async () => {
-    // A create already in flight owns the next note; a second click must not
-    // start a competing one. Each click otherwise adds its own note.
+  /**
+   * Create one note from the composer's text.
+   *
+   * The text travels with the create, so a note is never written twice: the
+   * file appears with its content already in it.
+   * @param {string} text - the note's opening text.
+   * @returns {Promise<{ id: string, text: string, createdAt: number } | undefined>}
+   *   the created note, or undefined when the Host refused.
+   */
+  const add = useCallback(async (text) => {
+    // A create already in flight owns the next note; a second submit must not
+    // start a competing one.
     if (inFlight.current) return undefined
     inFlight.current = true
     try {
-      const { note } = await callHost('create', { sessionId })
+      const { note } = await callHost('create', { sessionId, text })
       if (!alive.current) return undefined
       setError(undefined)
       setNotes((list) => [{ ...note, status: 'saved', error: undefined }, ...list])
       noteCountChanged(sessionId, 1)
-      return note.id
+      return note
     } catch (cause) {
       if (alive.current) setError(cause.message)
       return undefined

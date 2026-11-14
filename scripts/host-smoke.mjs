@@ -28,11 +28,17 @@ function is(actual, expected, what) {
 const root = await mkdtemp(join(tmpdir(), 'dsh-notes-'))
 
 // Two conversations in one workspace.
-const first = await createNote(root, 'session-a')
-const second = await createNote(root, 'session-b')
+const first = (await createNote(root, 'session-a')).value
+const second = (await createNote(root, 'session-b')).value
 is(notesDirectory(root, 'session-a'), join(root, '.dsh-notes', 'session-a'), 'a note lives under its own conversation')
 is((await listNotes(root, 'session-a')).map((note) => note.id), [first.id], 'a conversation lists only its own notes')
 is((await listNotes(root, 'session-b')).map((note) => note.id), [second.id], 'and not the other one\'s')
+
+// A note created from the composer holds its text from the first write.
+const fromComposer = await createNote(root, 'session-e', 'typed in the composer')
+is(fromComposer.value?.text, 'typed in the composer', 'a note can be created with text')
+is((await listNotes(root, 'session-e')).map((note) => note.text), ['typed in the composer'], 'and reads back with it')
+is((await createNote(root, 'session-e', 7)).code, 'bad-request', 'a non-string text is refused')
 
 const saved = await saveNote(root, 'session-a', first.id, 'hello')
 is(saved.value?.text, 'hello', 'a note saves')
@@ -64,7 +70,7 @@ const ctx = {
     if (name === 'workspaceRegistry') return registry
     if (name === 'sessionPersistence') {
       return {
-        stat: async (id) => (stored.has(id) ? { meta: { id, cwd: stored.get(id) }, revision: 1 } : undefined),
+        stat: async (id) => (stored.has(id) ? { header: { id, cwd: stored.get(id) }, revision: 1 } : undefined),
       }
     }
     return undefined

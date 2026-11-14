@@ -69,29 +69,52 @@ const CSS = `
   border: 0.5px solid var(--dsw-alias-border-l3);
   border-radius: var(--dsw-radius-md);
 }
-.dsh-notes-add {
+.dsh-notes-composer {
   display: flex;
-  gap: 6px;
-  align-items: center;
+  gap: 8px;
+  align-items: flex-end;
   box-sizing: border-box;
-  width: 100%;
-  padding: 10px 14px;
-  color: var(--dsw-alias-label-secondary);
+  padding: 8px 8px 8px 14px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+.dsh-notes-composer-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-height: 120px;
+  margin: 0;
+  padding: 4px 0;
+  color: var(--dsw-alias-label-primary);
   font: inherit;
   font-size: 12px;
-  text-align: left;
+  line-height: 18px;
   background: transparent;
   border: 0;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+  outline: none;
+  resize: none;
+}
+.dsh-notes-composer-input::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+.dsh-notes-composer-add {
+  flex: none;
+  padding: 4px 10px;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  border: 0;
+  border-radius: 6px;
   cursor: pointer;
 }
-.dsh-notes-add:hover:not(:disabled) {
-  color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-.dsh-notes-add:disabled {
+.dsh-notes-composer-add:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
   cursor: default;
-  opacity: 0.5;
+}
+.dsh-notes-composer-add:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
 }
 .dsh-notes-banner {
   margin: 0;

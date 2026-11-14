@@ -52,12 +52,12 @@ export async function sessionRootOf(ctx, sessionId) {
   const persistence = ctx.get('sessionPersistence')
   if (persistence !== undefined) {
     try {
-      // `sessionPersistence.stat` answers `{ meta, revision }`; `meta` is the
-      // immutable Session header. Reading `header` here instead — which a live
-      // Session object happens to use — resolved nothing for a Session that was
-      // not open, so every unopened row reported no notes.
+      // `sessionPersistence.stat` answers `{ header, revision }`; `header` is
+      // the immutable Session header. Reading any other field here resolves
+      // nothing for a Session that is not open, so every unopened row would
+      // report no notes until its conversation is opened once.
       const stored = await persistence.stat(sessionId)
-      const fromStore = stored?.meta?.cwd
+      const fromStore = stored?.header?.cwd
       if (typeof fromStore === 'string' && fromStore.length > 0) {
         resolved.set(sessionId, fromStore)
         return { root: fromStore }

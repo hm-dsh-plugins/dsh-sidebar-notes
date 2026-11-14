@@ -55,8 +55,10 @@ export async function handle(ctx, request) {
       case 'list':
         return Response.json({ notes: await listNotes(root, sessionId) })
 
-      case 'create':
-        return Response.json({ note: await createNote(root, sessionId) })
+      case 'create': {
+        const created = await createNote(root, sessionId, body.text)
+        return created.code === undefined ? Response.json({ note: created.value }) : failure(created.code, created.message)
+      }
 
       case 'save': {
         const result = await saveNote(root, sessionId, body.id, body.text)

@@ -1,15 +1,17 @@
 /**
  * The notes page: a header naming the workspace the notes belong to, then one
- * grouped surface — the add row stays at its top and every note sits below it,
+ * grouped surface — the composer stays at its top and every note sits below it,
  * newest first.
  *
- * Each note is a plain textarea, because a note is a plain-text file. A row also
+ * The composer is where a note starts: what it holds when 「添加」 is pressed
+ * becomes that note's first text, so nothing is created empty. Each note is a
+ * plain textarea afterwards, because a note is a plain-text file. A row also
  * carries its own actions: copy the text, push it into the composer, or delete
  * it. The page owns only the drawing and focus; `useNotes` owns the list, the
  * drafts and when they are written.
  */
 import { useEffect, useRef, useState } from 'react'
-import { CheckIcon, CopyIcon, InsertIcon, PlusIcon, TrashIcon } from './NotesIcon.jsx'
+import { CheckIcon, CopyIcon, InsertIcon, TrashIcon } from './NotesIcon.jsx'
 import { useNotes } from './use-notes.js'
 import { useNotesStyles } from './notes-styles.js'
 
@@ -71,8 +73,10 @@ export function NotesBody({ sessionId, t, useSessions, useInput, inputActions })
   // plugin is, and there the insert button is hidden anyway.
   const draft = useInput?.((state) => state.draft) ?? ''
   const [adding, setAdding] = useState(false)
+  /** What the composer holds; it becomes the next note's text. */
+  const [composer, setComposer] = useState('')
   const rootRef = useRef(null)
-  const [pendingFocus, setPendingFocus] = useState(undefined)
+  const composerRef = useRef(null)
   // The row whose bin awaits its second click, the row that just copied, and the
   // row that just went into the composer.
   const [confirming, setConfirming] = useState(undefined)
@@ -130,17 +134,6 @@ export function NotesBody({ sessionId, t, useSessions, useInput, inputActions })
     fitAreas(root)
   }, [notes])
 
-  // The block just created takes the keyboard, with the caret at the end.
-  useEffect(() => {
-    const root = rootRef.current
-    if (root === null || pendingFocus === undefined) return
-    setPendingFocus(undefined)
-    const target = root.querySelector(`textarea[data-note-id="${pendingFocus}"]`)
-    if (target === null) return
-    target.focus()
-    target.setSelectionRange(target.value.length, target.value.length)
-  }, [pendingFocus])
-
   // A narrower pane re-wraps every note. The text did not change, so the
   // effect above does not run; the width did, so the heights are measured again.
   useEffect(() => {
@@ -156,11 +149,26 @@ export function NotesBody({ sessionId, t, useSessions, useInput, inputActions })
     return () => { observer.disconnect() }
   }, [])
 
-  const onAdd = async () => {
+  // The composer grows with its text, so a wrapped thought is visible before it
+  // becomes a note. It never shrinks below one line: `auto` is the empty height.
+  useEffect(() => {
+    const area = composerRef.current
+    if (area === null) return
+    area.style.height = 'auto'
+    area.style.height = `${area.scrollHeight}px`
+  }, [composer])
+
+  // Enter creates; Shift+Enter adds a line, because a thought with lines is
+  // still one note. An IME's Enter confirms the candidate, so it creates nothing.
+  const onSubmit = async () => {
+    const text = composer.trim()
+    if (text === '' || adding) return
     setAdding(true)
     try {
-      const id = await add()
-      if (id !== undefined) setPendingFocus(id)
+      const note = await add(text)
+      if (note === undefined) return
+      setComposer('')
+      composerRef.current?.focus()
     } finally {
       setAdding(false)
     }
@@ -198,16 +206,35 @@ export function NotesBody({ sessionId, t, useSessions, useInput, inputActions })
       {phase === 'ready' && (
         <div className="dsh-notes-body">
           <div className="dsh-notes-card" data-dsh-notes-list>
-            <button
-              type="button"
-              className="dsh-notes-add"
-              data-dsh-notes-add
-              disabled={adding}
-              onClick={() => { void onAdd() }}
-            >
-              <PlusIcon size={14} />
-              <span>{t('add')}</span>
-            </button>
+            {/* The composer starts the next note: what is here when 「添加」 is
+                pressed becomes a note, so a note is never created empty and
+                then found again to be filled in. */}
+            <div className="dsh-notes-composer">
+              <textarea
+                ref={composerRef}
+                className="dsh-notes-composer-input"
+                data-dsh-notes-composer
+                rows={1}
+                spellCheck={false}
+                placeholder={t('placeholder')}
+                value={composer}
+                onChange={(event) => { setComposer(event.target.value) }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
+                  event.preventDefault()
+                  void onSubmit()
+                }}
+              />
+              <button
+                type="button"
+                className="dsh-notes-composer-add"
+                data-dsh-notes-add
+                disabled={adding || composer.trim() === ''}
+                onClick={() => { void onSubmit() }}
+              >
+                {t('add')}
+              </button>
+            </div>
 
             {error !== undefined && <p className="dsh-notes-banner">{error}</p>}
 

@@ -136,19 +136,41 @@ export async function countNotes(root, sessionId) {
 }
 
 /**
- * Create one empty note.
+ * Refuse a note text this store cannot hold.
+ * @param {unknown} text - complete note content.
+ * @returns {{ code: string, message: string } | undefined} the refusal, if any.
+ */
+function checkText(text) {
+  if (typeof text !== 'string') return { code: 'bad-request', message: 'text must be a string.' }
+  const bytes = Buffer.byteLength(text, 'utf8')
+  if (bytes > MAX_NOTE_BYTES) {
+    return {
+      code: 'too-large',
+      message: `That note is ${Math.round(bytes / 1024)} KiB; the limit is ${Math.round(MAX_NOTE_BYTES / 1024)} KiB.`,
+    }
+  }
+  return undefined
+}
+
+/**
+ * Create one note with the text the composer started it with.
  * @param {string} root - workspace root.
  * @param {string} sessionId - session identity.
- * @returns {Promise<{ id: string, text: string, createdAt: number }>} the new note.
+ * @param {unknown} text - the note's opening text; empty when the caller has none.
+ * @returns {Promise<{ value?: { id: string, text: string, createdAt: number }, code?: string, message?: string }>}
+ *   `{ value }` on success, or `{ code, message }` on refusal.
  */
-export async function createNote(root, sessionId) {
+export async function createNote(root, sessionId, text = '') {
+  const refusal = checkText(text)
+  if (refusal !== undefined) return refusal
+
   const createdAt = Date.now()
   const id = `${createdAt}-${randomBytes(4).toString('hex')}`
   const directory = notesDirectory(root, sessionId)
   await mkdir(directory, { recursive: true })
   // `wx` fails instead of overwriting, so a collision can never eat a note.
-  await writeFile(join(directory, `${id}.txt`), '', { encoding: 'utf8', flag: 'wx' })
-  return { id, text: '', createdAt }
+  await writeFile(join(directory, `${id}.txt`), text, { encoding: 'utf8', flag: 'wx' })
+  return { value: { id, text, createdAt } }
 }
 
 /**
@@ -186,13 +208,8 @@ export async function saveNote(root, sessionId, id, text) {
   if (typeof id !== 'string' || !NOTE_ID.test(id)) {
     return { code: 'bad-request', message: 'id must be a note identity.' }
   }
-  if (typeof text !== 'string') {
-    return { code: 'bad-request', message: 'text must be a string.' }
-  }
-  const bytes = Buffer.byteLength(text, 'utf8')
-  if (bytes > MAX_NOTE_BYTES) {
-    return { code: 'too-large', message: `That note is ${Math.round(bytes / 1024)} KiB; the limit is ${Math.round(MAX_NOTE_BYTES / 1024)} KiB.` }
-  }
+  const refusal = checkText(text)
+  if (refusal !== undefined) return refusal
 
   const directory = notesDirectory(root, sessionId)
   const path = join(directory, `${id}.txt`)
